@@ -1,0 +1,3 @@
+# Core DVC
+dvc>=3.38.1
+dvc-gdrive>=3.0.1
