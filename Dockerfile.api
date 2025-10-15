@@ -1,0 +1,33 @@
+# Dockerfile for FastAPI Application (Optional - separate from Streamlit)
+# This is ONLY needed if you want to run the API in a container
+# Streamlit deployment is NOT affected by this file
+
+FROM python:3.10-slim
+
+# Set working directory
+WORKDIR /app
+
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    curl \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy requirements
+COPY requirements.txt .
+
+# Install Python dependencies
+RUN pip install --no-cache-dir --trusted-host pypi.python.org -r requirements.txt
+
+# Copy application files
+COPY main.py .
+COPY dsmodelpickl+preprocessor/ ./dsmodelpickl+preprocessor/
+
+# Expose API port (different from Streamlit's 8501)
+EXPOSE 8000
+
+# Health check for API
+HEALTHCHECK CMD curl --fail http://localhost:8000/health || exit 1
+
+# Run FastAPI with uvicorn
+CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000"]
