@@ -19,8 +19,8 @@ class TestModelPrediction:
     def sample_input(self):
         """Create sample input data matching the expected features"""
         return pd.DataFrame({
-            'price': [1047],
-            'discount': [0],
+            'price': [1047.0],
+            'discount': [0.0],
             'category': ['Dark Chocolate'],
             'ingredients_count': [4],
             'has_dates': [1],
@@ -28,9 +28,9 @@ class TestModelPrediction:
             'has_protein': [0],
             'packaging_type': ['Paper-based'],
             'season': ['Winter'],
-            'customer_gender': ['Female'],
-            'age_numeric': [55],
-            'shelf_life': [12],
+            'customer_gender': [1.0],  # Female encoded as 1.0
+            'age_numeric': [55.0],
+            'shelf_life': [12.0],
             'clean_label': [1]
         })
     

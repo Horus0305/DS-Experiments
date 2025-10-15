@@ -11,6 +11,7 @@ Run with: uvicorn main:app --reload --port 8000
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
+from contextlib import asynccontextmanager
 import pickle
 import pandas as pd
 import os
@@ -21,13 +22,63 @@ import logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Initialize FastAPI app
+# Global variables for model and preprocessor
+model = None
+preprocessor = None
+model_name = "KNN"  # Default model to use
+
+
+def load_model_and_preprocessor():
+    """Load the trained model and preprocessor from disk"""
+    global model, preprocessor, model_name
+    
+    model_dir = "dsmodelpickl+preprocessor"
+    
+    try:
+        # Load preprocessor
+        preprocessor_path = os.path.join(model_dir, 'preprocessor.pkl')
+        with open(preprocessor_path, 'rb') as f:
+            preprocessor = pickle.load(f)
+        logger.info(f"✅ Preprocessor loaded successfully")
+        
+        # Load KNN model (best performing)
+        model_path = os.path.join(model_dir, 'knn_model.pkl')
+        with open(model_path, 'rb') as f:
+            model = pickle.load(f)
+        logger.info(f"✅ KNN model loaded successfully")
+        
+        return True
+        
+    except Exception as e:
+        logger.error(f"❌ Error loading model/preprocessor: {str(e)}")
+        return False
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Lifespan context manager for startup and shutdown"""
+    # Startup
+    logger.info("🚀 Starting FastAPI application...")
+    success = load_model_and_preprocessor()
+    if success:
+        logger.info("✅ Application ready to serve predictions")
+    else:
+        logger.error("❌ Application started but model loading failed")
+    
+    yield
+    
+    # Shutdown
+    logger.info("👋 Shutting down FastAPI application...")
+
+
+# Initialize FastAPI app with lifespan
 app = FastAPI(
     title="Product Success Prediction API",
     description="ML API for predicting product success for The Whole Truth Foods",
     version="1.0.0",
     docs_url="/docs",
-    redoc_url="/redoc"
+    redoc_url="/redoc",
+    lifespan=lifespan
 )
 
 # Add CORS middleware to allow requests from any origin (useful for web apps)
@@ -39,25 +90,25 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Define input schema using Pydantic
+# Define input schema using Pydantic V2
 class PredictionInput(BaseModel):
     """Input schema for prediction endpoint"""
-    price: float = Field(..., description="Product price in INR", example=1047)
-    discount: float = Field(..., description="Discount percentage (0-100)", example=0)
-    category: str = Field(..., description="Product category", example="Dark Chocolate")
-    ingredients_count: int = Field(..., description="Number of ingredients", example=4)
-    has_dates: int = Field(..., description="Contains dates (0 or 1)", example=1)
-    has_cocoa: int = Field(..., description="Contains cocoa (0 or 1)", example=1)
-    has_protein: int = Field(..., description="Contains protein (0 or 1)", example=0)
-    packaging_type: str = Field(..., description="Type of packaging", example="Paper-based")
-    season: str = Field(..., description="Season", example="Winter")
-    customer_gender: float = Field(..., description="Customer gender (0=Male, 1=Female)", example=1.0)
-    age_numeric: float = Field(..., description="Customer age (18-100)", example=55)
-    shelf_life: float = Field(..., description="Shelf life in months", example=12)
-    clean_label: int = Field(..., description="Clean label certified (0 or 1)", example=1)
+    price: float = Field(..., description="Product price in INR", json_schema_extra={"example": 1047})
+    discount: float = Field(..., description="Discount percentage (0-100)", json_schema_extra={"example": 0})
+    category: str = Field(..., description="Product category", json_schema_extra={"example": "Dark Chocolate"})
+    ingredients_count: int = Field(..., description="Number of ingredients", json_schema_extra={"example": 4})
+    has_dates: int = Field(..., description="Contains dates (0 or 1)", json_schema_extra={"example": 1})
+    has_cocoa: int = Field(..., description="Contains cocoa (0 or 1)", json_schema_extra={"example": 1})
+    has_protein: int = Field(..., description="Contains protein (0 or 1)", json_schema_extra={"example": 0})
+    packaging_type: str = Field(..., description="Type of packaging", json_schema_extra={"example": "Paper-based"})
+    season: str = Field(..., description="Season", json_schema_extra={"example": "Winter"})
+    customer_gender: float = Field(..., description="Customer gender (0=Male, 1=Female)", json_schema_extra={"example": 1.0})
+    age_numeric: float = Field(..., description="Customer age (18-100)", json_schema_extra={"example": 55})
+    shelf_life: float = Field(..., description="Shelf life in months", json_schema_extra={"example": 12})
+    clean_label: int = Field(..., description="Clean label certified (0 or 1)", json_schema_extra={"example": 1})
 
-    class Config:
-        schema_extra = {
+    model_config = {
+        "json_schema_extra": {
             "example": {
                 "price": 1047,
                 "discount": 0,
@@ -74,6 +125,7 @@ class PredictionInput(BaseModel):
                 "clean_label": 1
             }
         }
+    }
 
 
 class PredictionOutput(BaseModel):
@@ -82,56 +134,6 @@ class PredictionOutput(BaseModel):
     probability: float = Field(..., description="Probability of success (0-1)")
     confidence: str = Field(..., description="Confidence level (Low/Medium/High)")
     model_used: str = Field(..., description="Name of the model used")
-
-
-# Global variables for model and preprocessor
-model = None
-preprocessor = None
-model_name = "KNN"  # Default model to use
-
-
-def load_model_and_preprocessor():
-    """Load the trained model and preprocessor from disk"""
-    global model, preprocessor, model_name
-    
-    model_dir = "dsmodelpickl+preprocessor"
-    
-    try:
-        # Load preprocessor
-        preprocessor_path = os.path.join(model_dir, "preprocessor.pkl")
-        if not os.path.exists(preprocessor_path):
-            raise FileNotFoundError(f"Preprocessor not found at {preprocessor_path}")
-        
-        with open(preprocessor_path, "rb") as f:
-            preprocessor = pickle.load(f)
-        logger.info("✅ Preprocessor loaded successfully")
-        
-        # Load model (using KNN as default - best performing non-overfitting model)
-        model_path = os.path.join(model_dir, "knn_model.pkl")
-        if not os.path.exists(model_path):
-            raise FileNotFoundError(f"Model not found at {model_path}")
-        
-        with open(model_path, "rb") as f:
-            model = pickle.load(f)
-        logger.info(f"✅ Model ({model_name}) loaded successfully")
-        
-        return True
-        
-    except Exception as e:
-        logger.error(f"❌ Error loading model/preprocessor: {str(e)}")
-        return False
-
-
-# Load model on startup
-@app.on_event("startup")
-async def startup_event():
-    """Load model when the application starts"""
-    logger.info("🚀 Starting FastAPI application...")
-    success = load_model_and_preprocessor()
-    if success:
-        logger.info("✅ Application ready to serve predictions")
-    else:
-        logger.error("❌ Application started but model loading failed")
 
 
 @app.get("/")
