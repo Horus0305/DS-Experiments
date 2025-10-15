@@ -1,0 +1,3 @@
+# System-level dependencies for Streamlit Cloud
+# Add any system packages needed here (one per line)
+# Example: libgomp1 for some ML libraries
