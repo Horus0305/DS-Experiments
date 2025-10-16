@@ -201,29 +201,6 @@ Why KNN (Baseline)?
 - **KNN (Tuned)**: 94.92% - More balanced precision/recall after tuning
 ```
 
-### 🎯 Best Model: KNN (Baseline) - 95.30%
-
-```python
-Model: K-Nearest Neighbors (KNN) - Baseline
-Accuracy: 95.30%
-Precision: 95.06%  # Minimal false positives
-Recall: 98.05%     # Excellent at catching successes
-F1-Score: 0.9653   # Great balance
-
-Why KNN (Baseline)?
-✅ Highest accuracy (95.30%) without hyperparameter tuning
-✅ Excellent recall (98.05% - catches 98% of successful products)
-✅ Strong precision (95.06% - minimal false alarms)
-✅ Best F1-score (0.9653) - optimal precision-recall balance
-✅ Fast inference (~5ms per prediction)
-✅ No overfitting (realistic performance on test data)
-✅ Simple, interpretable, production-ready
-
-**Alternative Models:**
-- **ANN_DNN (Baseline)**: 94.83% - Best for catching ALL successes (99.76% recall)
-- **LDA (Baseline)**: 94.70% - Perfect recall (100%) for risk-averse scenarios
-- **KNN (Tuned)**: 94.92% - More balanced precision/recall after tuning
-```
 
 ### 📊 Feature Importance (Dynamic Analysis)
 
