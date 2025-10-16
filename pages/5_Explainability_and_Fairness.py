@@ -188,7 +188,7 @@ if models:
     with col1:
         st.dataframe(
             df_selected.style.background_gradient(subset=['Accuracy'], cmap='Greens').format({'Accuracy': '{:.2%}'}),
-            use_container_width=True,
+            width='stretch',
             hide_index=True
         )
     
@@ -269,14 +269,14 @@ That page includes:
 st.markdown("---")
 
 # SHAP Analysis Section - DYNAMIC
-st.header("🎯 SHAP (SHapley Additive exPlanations) Analysis")
+st.header("🎯 SHAP (SHapley Additive exPlanations)")
 
 st.markdown("""
-**SHAP values** explain the contribution of each feature to individual predictions using game theory.
+**SHAP** uses game theory to explain model predictions at both **global** and **local** levels:
+- **Global Analysis**: Overall feature importance across all predictions
+- **Local Analysis**: Feature contributions for individual predictions
 - **Positive SHAP values** (red): Push prediction towards success (1)
 - **Negative SHAP values** (blue): Push prediction towards failure (0)
-- **Global explanations**: Show overall feature importance across all predictions
-- **Local explanations**: Show feature contributions for individual predictions
 """)
 
 if models and preprocessor is not None and df_data is not None:
@@ -392,7 +392,7 @@ if models and preprocessor is not None and df_data is not None:
             showlegend=False
         )
         
-        st.plotly_chart(fig_global, use_container_width=True)
+        st.plotly_chart(fig_global, width='stretch')
         
         # Summary statistics
         st.success(f"""
@@ -438,12 +438,12 @@ if models and preprocessor is not None and df_data is not None:
             showlegend=True
         )
         
-        st.plotly_chart(fig_summary, use_container_width=True)
+        st.plotly_chart(fig_summary, width='stretch')
         
-        # LOCAL EXPLANATION: Individual Prediction
+        # LOCAL ANALYSIS: Individual Prediction Waterfall
         st.markdown("---")
-        st.markdown("### 🔍 Local Explanation: Individual Prediction (Waterfall Plot)")
-        st.markdown("Explains how features contribute to a specific prediction for one sample.")
+        st.markdown("### 🔍 Local Analysis: Waterfall Plot for Individual Prediction")
+        st.markdown("See how each feature pushes the prediction higher or lower for a specific sample.")
         
         # Sample selection
         col1, col2 = st.columns([3, 1])
@@ -531,7 +531,7 @@ if models and preprocessor is not None and df_data is not None:
         
         fig_waterfall.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
         
-        st.plotly_chart(fig_waterfall, use_container_width=True)
+        st.plotly_chart(fig_waterfall, width='stretch')
         
         # Explanation
         st.success(f"""
@@ -581,10 +581,10 @@ st.markdown("---")
 st.header("🔬 LIME (Local Interpretable Model-agnostic Explanations)")
 
 st.markdown("""
-**LIME** explains predictions by fitting a simple interpretable model locally around the prediction.
-- Works with **any model type** (model-agnostic)
-- Fits an interpretable linear model around each specific prediction
-- Shows which features matter most for individual predictions
+**LIME** explains individual predictions by fitting a simple linear model locally around each prediction:
+- **Model-agnostic**: Works with any model type (black-box compatible)
+- **Local focus**: Explains one prediction at a time
+- **Interpretable**: Uses a simple linear approximation to show feature contributions
 """)
 
 if LIME_AVAILABLE and models and preprocessor is not None and df_data is not None:
@@ -609,7 +609,7 @@ if LIME_AVAILABLE and models and preprocessor is not None and df_data is not Non
         
         model_lime = models[selected_model_lime]
         
-        st.markdown("### 🎯 LIME Local Explanation - Individual Prediction")
+        st.markdown("### 🎯 Individual Prediction Explanation")
         
         # Prepare data
         X_lime = df_data.drop('Success', axis=1) if 'Success' in df_data.columns else df_data
@@ -724,7 +724,7 @@ if LIME_AVAILABLE and models and preprocessor is not None and df_data is not Non
         
         fig_lime.add_vline(x=0, line_dash="dash", line_color="gray")
         
-        st.plotly_chart(fig_lime, use_container_width=True)
+        st.plotly_chart(fig_lime, width='stretch')
 
         # Optional: Waterfall-like cumulative plot for LIME (ordered contributions)
         with st.expander("View LIME cumulative impact plot (waterfall style)"):
@@ -755,7 +755,7 @@ if LIME_AVAILABLE and models and preprocessor is not None and df_data is not Non
                 template="plotly_white",
                 height=350
             )
-            st.plotly_chart(wf_fig, use_container_width=True)
+            st.plotly_chart(wf_fig, width='stretch')
 
         st.caption("LIME uses the same preprocessed dataset as SHAP. Sample is selected from the first 1000 rows for performance.")
         
@@ -779,7 +779,7 @@ if LIME_AVAILABLE and models and preprocessor is not None and df_data is not Non
                 'Feature': feature_names_lime,
                 'Value': lime_sample
             })
-            st.dataframe(feature_value_df, use_container_width=True, hide_index=True)
+            st.dataframe(feature_value_df, width='stretch', hide_index=True)
             
     except Exception as e:
         st.error(f"Error generating LIME explanation: {str(e)}")
@@ -873,7 +873,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns and 'cus
                     'Recall': '{:.3f}',
                     'F1-Score': '{:.3f}'
                 }),
-                use_container_width=True,
+                width='stretch',
                 hide_index=True
             )
             
@@ -926,7 +926,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns and 'cus
                 yaxis_range=[0, 1.1]
             )
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Overall fairness assessment
         if acc_fair and recall_fair:
@@ -958,7 +958,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns and 'cus
             'Sample Size': [5000, 5000]
         }
         df_gender = pd.DataFrame(gender_metrics)
-        st.dataframe(df_gender, use_container_width=True, hide_index=True)
+        st.dataframe(df_gender, width='stretch', hide_index=True)
 else:
     st.warning("Models or data not loaded. Cannot perform gender fairness analysis.")
 
@@ -1015,7 +1015,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns and 'age
                     'Recall': '{:.3f}',
                     'F1-Score': '{:.3f}'
                 }),
-                use_container_width=True,
+                width='stretch',
                 hide_index=True
             )
         
@@ -1056,7 +1056,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns and 'age
             fig.update_yaxes(title_text="Count", row=1, col=2)
             fig.update_layout(height=400, showlegend=True)
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
         
         # Age fairness assessment
         acc_range = df_age['Accuracy'].max() - df_age['Accuracy'].min()
@@ -1084,7 +1084,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns and 'age
             'Sample Size': [3000, 4000, 2000, 1000]
         }
         df_age = pd.DataFrame(age_metrics)
-        st.dataframe(df_age, use_container_width=True, hide_index=True)
+        st.dataframe(df_age, width='stretch', hide_index=True)
 else:
     st.warning("Models or data not loaded. Cannot perform age fairness analysis.")
 
@@ -1211,7 +1211,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns:
         col1, col2 = st.columns([3, 2])
 
         with col1:
-            st.dataframe(df_fairness, use_container_width=True, hide_index=True)
+            st.dataframe(df_fairness, width='stretch', hide_index=True)
 
         with col2:
             # Fairness score visualization (percentage of Pass among available metrics)
@@ -1242,7 +1242,7 @@ if models and preprocessor is not None and 'Success' in df_data.columns:
             ))
             
             fig.update_layout(height=300)
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
 
         # Dynamic summary
         failed = df_fairness[df_fairness['Status'] == '❌ Fail']['Metric'].tolist()
@@ -1255,11 +1255,12 @@ if models and preprocessor is not None and 'Success' in df_data.columns:
             - Model is suitable for ethical deployment with current data
             """)
         else:
+            failed_metrics = "\n- ".join(failed)
             st.warning(f"""
             ### ⚠️ Fairness Audit Results: ACTION NEEDED
 
             The following metrics exceeded thresholds:
-            - {"\n- ".join(failed)}
+            - {failed_metrics}
 
             Consider applying bias mitigation strategies below and re-evaluating.
             """)
@@ -1612,7 +1613,7 @@ if models and preprocessor is not None and len(df_data) > 0 and 'Success' in df_
                     'Age Parity Diff': '{:.3f}',
                     'Fairness Score': '{:.1f}'
                 }),
-                use_container_width=True,
+                width='stretch',
                 hide_index=True
             )
             
@@ -1664,7 +1665,7 @@ if models and preprocessor is not None and len(df_data) > 0 and 'Success' in df_
             
             fig.update_yaxes(title_text="Parity Difference", range=[0, max(df_model_fairness['Age Parity Diff'].max(), df_model_fairness['Gender Parity Diff'].max()) * 1.2])
             
-            st.plotly_chart(fig, use_container_width=True)
+            st.plotly_chart(fig, width='stretch')
             
             # Summary insights
             col1, col2, col3 = st.columns(3)
