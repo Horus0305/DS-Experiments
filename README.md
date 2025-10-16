@@ -148,35 +148,81 @@ This comprehensive data science project completes **8 experiments** covering the
 
 ## 🏆 Models & Performance
 
-### Model Comparison
 
-| Model | Accuracy | Precision | Recall | F1-Score | Status |
-|-------|----------|-----------|--------|----------|--------|
-| **Logistic Regression** 🥇 | **99.97%** | 99.94% | 100% | 99.97% | ✅ Recommended (Tuned) |
-| **SVM** � | **99.97%** | 99.94% | 100% | 99.97% | ✅ Recommended (Tuned) |
-| **KNN** 🥈 | **95.30%** | 89.56% | **98.05%** | 93.57% | ✅ Recommended (Baseline) |
-| **ANN/DNN** 🥉 | 94.83% | 90.11% | 99.76% | 94.70% | ✅ Production Ready (Baseline) |
-| **LDA** | 94.70% | 89.48% | 100% | 94.44% | ✅ Production Ready (Baseline) |
-| **Naive Bayes** | 75.56% | 100% | 63.30% | 77.50% | ⚠️ Not Recommended |
 
-### 🎯 Best Models: Logistic Regression & SVM (Tuned)
+### Model Comparison (All Trained Models)
+
+| Model               | Stage     | Accuracy | Precision | Recall   | F1-Score | Status/Notes                |
+|---------------------|-----------|----------|-----------|----------|----------|-----------------------------|
+| **KNN**             | Baseline  | 95.30%   | 95.06%    | 98.05%   | 0.9653   | ✅ Best Realistic Model      |
+| **KNN**             | Tuned     | 94.92%   | 96.10%    | 96.28%   | 0.9619   | ✅ Production Ready          |
+| **ANN_DNN**         | Baseline  | 94.83%   | 92.98%    | 99.76%   | 0.9625   | ✅ High Recall               |
+| **ANN_DNN**         | Tuned     | 94.13%   | 97.42%    | 93.66%   | 0.9550   | ✅ Balanced                  |
+| **LDA**             | Baseline  | 94.70%   | 92.63%    | 100.00%  | 0.9617   | ✅ Perfect Recall            |
+| **LDA**             | Tuned     | 91.33%   | 100.00%   | 86.99%   | 0.9304   | ✅ High Precision            |
+| **Naive Bayes**     | Baseline  | 75.56%   | 100.00%   | 63.30%   | 0.7752   | ⚠️ Not Recommended           |
+| **Naive Bayes**     | Tuned     | 75.56%   | 100.00%   | 63.30%   | 0.7752   | ⚠️ Not Recommended           |
+| **Decision Tree**   | Baseline  | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **Decision Tree**   | Tuned     | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **SVM**             | Baseline  | 99.97%   | 0.9976    | 1.0000   | 0.9997   | ⚠️ Overfitting (not deployed)|
+| **SVM**             | Tuned     | 99.68%   | 0.9976    | 1.0000   | 0.9997   | ⚠️ Overfitting (not deployed)|
+| **Logistic Regression** | Baseline | 94.70% | 0.9617    | 0.9263   | 0.9617   | ⚠️ Not deployed              |
+| **Logistic Regression** | Tuned    | 94.70%  | 0.9617    | 0.9263   | 0.9617   | ⚠️ Not deployed              |
+| **Random Forest**   | Baseline  | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **Random Forest**   | Tuned     | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **XGBoost**         | Baseline  | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **XGBoost**         | Tuned     | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **LightGBM**        | Baseline  | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+| **LightGBM**        | Tuned     | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
+
+**Note:** Models with 100% accuracy are likely overfitting and are not deployed. Only KNN, ANN_DNN, LDA, and Naive Bayes are used in production.
+
+### 🎯 Best Model: KNN (Baseline) - 95.30%
 
 ```python
-Model: Logistic Regression / SVM (Tuned with GridSearchCV)
-Accuracy: 99.97%
-Recall: 100%  # Perfect at identifying successful products
-Precision: 99.94%
-F1-Score: 99.97%
+Model: K-Nearest Neighbors (KNN) - Baseline
+Accuracy: 95.30%
+Precision: 95.06%  # Minimal false positives
+Recall: 98.05%     # Excellent at catching successes
+F1-Score: 0.9653   # Great balance
 
-Why Logistic Regression/SVM (Tuned)?
-✅ Highest accuracy (99.97%) after hyperparameter tuning
-✅ Perfect recall (100% - no false negatives)
-✅ Excellent precision (99.94% - minimal false positives)
-✅ Fast inference (~5ms)
-✅ Interpretable (especially Logistic Regression)
-✅ Proven performance on test data
+Why KNN (Baseline)?
+✅ Highest accuracy (95.30%) without hyperparameter tuning
+✅ Excellent recall (98.05% - catches 98% of successful products)
+✅ Strong precision (95.06% - minimal false alarms)
+✅ Best F1-score (0.9653) - optimal precision-recall balance
+✅ Fast inference (~5ms per prediction)
+✅ No overfitting (realistic performance on test data)
+✅ Simple, interpretable, production-ready
 
-**Alternative:** KNN (95.30%) - No tuning needed, good baseline
+**Alternative Models:**
+- **ANN_DNN (Baseline)**: 94.83% - Best for catching ALL successes (99.76% recall)
+- **LDA (Baseline)**: 94.70% - Perfect recall (100%) for risk-averse scenarios
+- **KNN (Tuned)**: 94.92% - More balanced precision/recall after tuning
+```
+
+### 🎯 Best Model: KNN (Baseline) - 95.30%
+
+```python
+Model: K-Nearest Neighbors (KNN) - Baseline
+Accuracy: 95.30%
+Precision: 95.06%  # Minimal false positives
+Recall: 98.05%     # Excellent at catching successes
+F1-Score: 0.9653   # Great balance
+
+Why KNN (Baseline)?
+✅ Highest accuracy (95.30%) without hyperparameter tuning
+✅ Excellent recall (98.05% - catches 98% of successful products)
+✅ Strong precision (95.06% - minimal false alarms)
+✅ Best F1-score (0.9653) - optimal precision-recall balance
+✅ Fast inference (~5ms per prediction)
+✅ No overfitting (realistic performance on test data)
+✅ Simple, interpretable, production-ready
+
+**Alternative Models:**
+- **ANN_DNN (Baseline)**: 94.83% - Best for catching ALL successes (99.76% recall)
+- **LDA (Baseline)**: 94.70% - Perfect recall (100%) for risk-averse scenarios
+- **KNN (Tuned)**: 94.92% - More balanced precision/recall after tuning
 ```
 
 ### 📊 Feature Importance (Dynamic Analysis)
@@ -184,7 +230,7 @@ Why Logistic Regression/SVM (Tuned)?
 Top features influencing success (calculated using permutation importance):
 
 1. **Price** - Premium pricing signals quality
-2. **Has Cocoa** - Premium ingredient indicator  
+2. **Has Cocoa** - Premium ingredient indicator
 3. **Has Protein** - Health appeal factor
 4. **Clean Label** - Trust and transparency
 5. **Has Dates** - Natural sweetener preference
