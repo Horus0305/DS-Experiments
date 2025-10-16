@@ -167,7 +167,7 @@ This comprehensive data science project completes **8 experiments** covering the
 | **SVM**             | Baseline  | 99.97%   | 0.9976    | 1.0000   | 0.9997   | ⚠️ Overfitting (not deployed)|
 | **SVM**             | Tuned     | 99.68%   | 0.9976    | 1.0000   | 0.9997   | ⚠️ Overfitting (not deployed)|
 | **Logistic Regression** | Baseline | 94.70% | 0.9617    | 0.9263   | 0.9617   | ⚠️ Not deployed              |
-| **Logistic Regression** | Tuned    | 94.70%  | 0.9617    | 0.9263   | 0.9617   | ⚠️ Not deployed              |
+| **Logistic Regression** | Tuned    | 99.97%  | 1.0000    | 0.9995   | 0.9998   | ⚠️ Overfitting (not deployed) |
 | **Random Forest**   | Baseline  | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
 | **Random Forest**   | Tuned     | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
 | **XGBoost**         | Baseline  | 100.00%  | 1.0000    | 1.0000   | 1.0000   | ⚠️ Overfitting (not deployed)|
