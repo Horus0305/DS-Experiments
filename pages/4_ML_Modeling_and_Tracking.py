@@ -1,10 +1,13 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import plotly.express as px
 import plotly.graph_objects as go
 from plotly.subplots import make_subplots
 import sqlite3
 import json
+import pickle
+import os
 
 st.set_page_config(page_title="ML Modeling & Tracking", layout="wide")
 
@@ -134,14 +137,14 @@ st.header("📦 Dataset Preparation")
 
 col1, col2, col3, col4 = st.columns(4)
 col1.metric("Total Samples", "10,500")
-col2.metric("Training Set (80%)", "8,400")
-col3.metric("Test Set (20%)", "2,100")
-col4.metric("Features Used", "15")
+col2.metric("Training Set (70%)", "7,350")
+col3.metric("Test Set (30%)", "3,150")
+col4.metric("Features Used", "13")
 
 st.markdown("""
 **Data Split Strategy:**
-- 80/20 train-test split with stratification to maintain class balance
-- Features: Product attributes, customer demographics, sentiment scores, engineered features
+- 70/30 train-test split with stratification to maintain class balance
+- Features: 13 carefully selected features (product attributes, customer demographics, engineered features)
 - Target variable: `Success` (binary classification - product success indicator)
 """)
 
@@ -864,65 +867,428 @@ else:
 # Feature Importance
 st.header("🎯 Feature Importance Analysis")
 
-feature_importance = {
-    'Feature': ['sentiment_score', 'average_rating', 'price', 'ingredients_count', 
-                'num_reviews', 'has_protein', 'age_numeric', 'has_cocoa', 
-                'units_sold', 'discount'],
-    'Importance': [0.18, 0.16, 0.14, 0.12, 0.10, 0.09, 0.08, 0.06, 0.04, 0.03]
-}
-
-df_importance = pd.DataFrame(feature_importance)
-
-fig = px.bar(
-    df_importance,
-    x='Importance',
-    y='Feature',
-    orientation='h',
-    title='Top 10 Most Important Features',
-    color='Importance',
-    color_continuous_scale='Viridis'
-)
-
-fig.update_layout(height=400)
-st.plotly_chart(fig, use_container_width=True)
-
-st.info("""
-**Key Insights:**
-- **Sentiment Score** and **Average Rating** are the strongest predictors of product success
-- **Price** plays a significant role, but not the dominant factor
-- **Ingredient Count** and **Protein Content** indicate customer preference for nutritious products
+st.markdown("""
+Understanding which features drive our predictions helps validate model logic and ensure business alignment.
 """)
 
-# Results Summary
+# Load actual model objects from pickle files
+@st.cache_resource
+def load_model_objects():
+    """Load actual trained models from pickle files"""
+    model_dir = 'dsmodelpickl+preprocessor'
+    models = {}
+    preprocessor = None
+    
+    try:
+        # Load preprocessor
+        preprocessor_path = os.path.join(model_dir, 'preprocessor.pkl')
+        if os.path.exists(preprocessor_path):
+            with open(preprocessor_path, 'rb') as f:
+                preprocessor = pickle.load(f)
+        
+        # Load all models
+        model_files = {
+            'KNN': 'knn_model.pkl',
+            'ANN_DNN': 'ann_dnn_model.pkl',
+            'LDA': 'lda_model.pkl',
+            'Naive Bayes': 'naive_bayes_model.pkl'
+        }
+        
+        for model_name, filename in model_files.items():
+            model_path = os.path.join(model_dir, filename)
+            if os.path.exists(model_path):
+                with open(model_path, 'rb') as f:
+                    models[model_name] = pickle.load(f)
+        
+        return models, preprocessor
+    except Exception as e:
+        st.warning(f"Could not load models: {str(e)}")
+        return {}, None
+
+# Load models
+loaded_models, loaded_preprocessor = load_model_objects()
+
+if loaded_models:
+    st.markdown("### 🎯 Dynamic Feature Importance from Your Trained Models")
+    
+    st.success(f"✅ Successfully loaded {len(loaded_models)} models for feature importance analysis")
+    
+    # Get feature names from preprocessor if available
+    feature_names = None
+    if loaded_preprocessor is not None:
+        try:
+            # Try to get feature names from preprocessor
+            if hasattr(loaded_preprocessor, 'get_feature_names_out'):
+                feature_names = list(loaded_preprocessor.get_feature_names_out())
+            elif hasattr(loaded_preprocessor, 'feature_names_in_'):
+                feature_names = list(loaded_preprocessor.feature_names_in_)
+        except:
+            pass
+    
+    # If we don't have feature names, use generic names
+    if feature_names is None:
+        feature_names = [f'Feature_{i}' for i in range(13)]  # 13 features
+    
+    # Function to calculate permutation importance
+    def calculate_permutation_importance(model, X, y, feature_names, n_repeats=5):
+        """
+        Calculate permutation importance for any model.
+        This works by shuffling each feature and measuring the drop in model performance.
+        """
+        try:
+            from sklearn.metrics import accuracy_score
+            
+            # Helper function to get clean predictions
+            def get_predictions(model, X):
+                predictions = model.predict(X)
+                
+                # Handle multi-dimensional predictions (like neural networks)
+                if len(predictions.shape) > 1:
+                    predictions = predictions.flatten()
+                
+                # Convert continuous predictions to binary (0 or 1)
+                if predictions.dtype in [np.float16, np.float32, np.float64]:
+                    # Flatten again if still multi-dimensional
+                    predictions = predictions.flatten()
+                    # Round and clip to ensure binary
+                    predictions = np.clip(np.round(predictions), 0, 1).astype(int)
+                
+                return predictions
+            
+            # Get baseline score
+            baseline_predictions = get_predictions(model, X)
+            baseline_score = accuracy_score(y, baseline_predictions)
+            
+            # Debug: Check if model is making varied predictions
+            unique_preds = np.unique(baseline_predictions)
+            if len(unique_preds) == 1:
+                st.warning(f"⚠️ Model is predicting only one class. Baseline accuracy: {baseline_score:.4f}")
+            
+            importances = []
+            for feature_idx in range(X.shape[1]):
+                scores = []
+                for _ in range(n_repeats):
+                    # Copy and shuffle one feature
+                    X_permuted = X.copy()
+                    np.random.shuffle(X_permuted[:, feature_idx])
+                    
+                    # Calculate score with shuffled feature
+                    permuted_predictions = get_predictions(model, X_permuted)
+                    permuted_score = accuracy_score(y, permuted_predictions)
+                    
+                    # Importance is the drop in performance
+                    scores.append(max(0, baseline_score - permuted_score))  # Ensure non-negative
+                
+                # Average across repeats
+                importances.append(np.mean(scores))
+            
+            # Normalize importances to sum to 1 (like sklearn's feature_importances_)
+            importances = np.array(importances)
+            if importances.sum() > 0:
+                importances = importances / importances.sum()
+            else:
+                # If all importances are 0, use small uniform values
+                st.info("All features have 0 importance. Using small uniform values.")
+                importances = np.ones(len(feature_names)) * 0.001
+            
+            return importances
+        except Exception as e:
+            st.warning(f"Could not calculate permutation importance: {str(e)}")
+            return None
+    
+    # Load test data for permutation importance (if needed)
+    @st.cache_data
+    def load_test_data():
+        """Load test data for permutation importance calculation"""
+        try:
+            # Try to load from your data source
+            data = pd.read_csv('data/WholeTruthFoodDataset-combined.csv')
+            
+            # Assuming 'Success' is the target column
+            if 'Success' in data.columns:
+                X = data.drop('Success', axis=1)
+                y = data['Success']
+                
+                # Apply preprocessing if available
+                if loaded_preprocessor is not None:
+                    X_processed = loaded_preprocessor.transform(X)
+                    st.info(f"📊 Loaded {X_processed.shape[0]} samples with {X_processed.shape[1]} features (preprocessed)")
+                else:
+                    X_processed = X.values
+                    st.warning("⚠️ Using raw data without preprocessing. Results may be inaccurate.")
+                
+                # Use a stratified sample for better representation
+                from sklearn.model_selection import train_test_split
+                if len(X_processed) > 500:
+                    _, X_sample, _, y_sample = train_test_split(
+                        X_processed, y.values, 
+                        test_size=500, 
+                        stratify=y.values,
+                        random_state=42
+                    )
+                    return X_sample, y_sample
+                else:
+                    return X_processed, y.values
+        except Exception as e:
+            st.warning(f"Could not load test data: {str(e)}")
+        return None, None
+    
+    # Extract feature importance from models
+    feature_importance_dict = {}
+    
+    # Load test data once for permutation importance
+    X_test, y_test = load_test_data()
+    use_permutation = X_test is not None and y_test is not None
+    
+    for model_name, model in loaded_models.items():
+        try:
+            if hasattr(model, 'feature_importances_'):
+                # Tree-based models (Random Forest, XGBoost, etc.)
+                importance = model.feature_importances_
+                feature_importance_dict[model_name] = importance
+            elif hasattr(model, 'coef_'):
+                # Linear models (LDA, Logistic Regression, etc.)
+                importance = np.abs(model.coef_[0]) if len(model.coef_.shape) > 1 else np.abs(model.coef_)
+                feature_importance_dict[model_name] = importance
+            else:
+                # For models without direct feature importance, use Permutation Importance
+                if use_permutation:
+                    with st.spinner(f'Calculating permutation importance for {model_name}...'):
+                        importance = calculate_permutation_importance(
+                            model, X_test, y_test, feature_names, n_repeats=5
+                        )
+                        if importance is not None:
+                            feature_importance_dict[model_name] = importance
+                            st.success(f"✅ {model_name}: Calculated real feature importance using permutation method!")
+                        else:
+                            # Fallback to uniform
+                            importance = np.ones(len(feature_names)) / len(feature_names)
+                            feature_importance_dict[model_name] = importance
+                            st.info(f"ℹ️ {model_name}: Using uniform importance as fallback.")
+                else:
+                    # No test data available, use uniform
+                    importance = np.ones(len(feature_names)) / len(feature_names)
+                    feature_importance_dict[model_name] = importance
+                    st.info(f"ℹ️ {model_name}: Test data not available. Using uniform importance.")
+        except Exception as e:
+            st.warning(f"⚠️ Could not extract feature importance from {model_name}: {str(e)}")
+    
+    if feature_importance_dict:
+        # Create tabs for different models
+        model_tabs = st.tabs(list(feature_importance_dict.keys()))
+        
+        for tab, (model_name, importance) in zip(model_tabs, feature_importance_dict.items()):
+            with tab:
+                # Ensure we have the right number of features
+                n_features = min(len(importance), len(feature_names))
+                
+                # Create dataframe
+                df_importance = pd.DataFrame({
+                    'Feature': feature_names[:n_features],
+                    'Importance': importance[:n_features]
+                }).sort_values('Importance', ascending=False)
+                
+                # Show top 10
+                df_top10 = df_importance.head(10)
+                
+                col1, col2 = st.columns([2, 1])
+                
+                with col1:
+                    # Bar chart
+                    fig = px.bar(
+                        df_top10,
+                        x='Importance',
+                        y='Feature',
+                        orientation='h',
+                        title=f'Top 10 Features - {model_name}',
+                        color='Importance',
+                        color_continuous_scale='Viridis',
+                        text=df_top10['Importance'].apply(lambda x: f'{x:.3f}')
+                    )
+                    
+                    fig.update_layout(height=400, yaxis={'categoryorder': 'total ascending'})
+                    fig.update_traces(textposition='outside')
+                    st.plotly_chart(fig, use_container_width=True)
+                
+                with col2:
+                    st.markdown("#### Top 5 Features")
+                    for idx, row in df_top10.head(5).iterrows():
+                        st.metric(
+                            label=row['Feature'],
+                            value=f"{row['Importance']:.4f}"
+                        )
+                    
+                    st.markdown("#### Statistics")
+                    st.info(f"""
+                    **Total Features:** {n_features}  
+                    **Top Feature:** {df_top10.iloc[0]['Feature']}  
+                    **Importance Range:** {importance.min():.4f} - {importance.max():.4f}  
+                    **Mean Importance:** {importance.mean():.4f}
+                    """)
+        
+        # Aggregate view across all models
+        st.markdown("### 📊 Aggregate Feature Importance (All Models)")
+        
+        # Average importance across all models
+        all_importances = []
+        for importance in feature_importance_dict.values():
+            n_features = min(len(importance), len(feature_names))
+            all_importances.append(importance[:n_features])
+        
+        if all_importances:
+            avg_importance = np.mean(all_importances, axis=0)
+            
+            df_avg = pd.DataFrame({
+                'Feature': feature_names[:len(avg_importance)],
+                'Average_Importance': avg_importance
+            }).sort_values('Average_Importance', ascending=False)
+            
+            fig = px.bar(
+                df_avg.head(10),
+                x='Average_Importance',
+                y='Feature',
+                orientation='h',
+                title='Top 10 Features - Averaged Across All Models',
+                color='Average_Importance',
+                color_continuous_scale='RdYlGn',
+                text=df_avg.head(10)['Average_Importance'].apply(lambda x: f'{x:.3f}')
+            )
+            
+            fig.update_layout(height=450, yaxis={'categoryorder': 'total ascending'})
+            fig.update_traces(textposition='outside')
+            st.plotly_chart(fig, use_container_width=True)
+            
+            st.success(f"""
+            **Key Insights from Feature Importance:**
+            - **Most Important:** {df_avg.iloc[0]['Feature']} (avg importance: {df_avg.iloc[0]['Average_Importance']:.4f})
+            - **Top 3 Features:** {', '.join(df_avg.head(3)['Feature'].tolist())}
+            - **Total Features Analyzed:** {len(df_avg)}
+            - **Models Analyzed:** {len(feature_importance_dict)}
+            """)
+    else:
+        st.warning("Could not extract feature importance from loaded models. They may not support feature importance extraction.")
+else:
+    st.info("No models loaded yet.")
+
+# Results Summary - Dynamic based on actual model performance
+st.markdown("---")
 st.header("📊 Results Summary")
 
-col1, col2 = st.columns(2)
+# Filter to show only the 4 deployed models
+deployed_models = ['KNN', 'ANN_DNN', 'LDA', 'Naive Bayes']
 
-with col1:
-    st.markdown("### Model Performance")
-    st.markdown("""
-    | Metric | Baseline | Tuned | Improvement |
-    |--------|----------|-------|-------------|
-    | Accuracy | 75.56% | **95.30%** | +19.74% |
-    | Precision | 100% | **89.56%** | -10.44% |
-    | Recall | 63.30% | **98.05%** | +34.75% |
-    | F1-Score | 0.7750 | **0.9357** | +0.1607 |
+if not summary_df.empty:
+    # Filter for deployed models only
+    model_name_col = 'model_name' if 'model_name' in summary_df.columns else 'display_name'
+    deployed_df = summary_df[summary_df[model_name_col].str.contains('|'.join(deployed_models), case=False, na=False)]
+    
+    if deployed_df.empty:
+        # Fallback to all data if filtering fails
+        deployed_df = summary_df
+    
+    # Get best performing model from deployed models
+    best_model = deployed_df.loc[deployed_df['accuracy'].idxmax()]
+    best_accuracy = best_model['accuracy']
+    best_model_name = best_model.get('display_name', best_model.get('model_name', 'Unknown'))
+    
+    # Get best metrics across deployed models
+    best_f1 = deployed_df['f1_score'].max() if 'f1_score' in deployed_df.columns else 0
+    best_precision = deployed_df['precision'].max() if 'precision' in deployed_df.columns else 0
+    best_recall = deployed_df['recall'].max() if 'recall' in deployed_df.columns else 0
+    
+    # Get worst performer to show improvement
+    worst_accuracy = deployed_df['accuracy'].min()
+    improvement = best_accuracy - worst_accuracy
+    
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### 🏆 Model Performance")
+        st.markdown(f"""
+        **Best Model: {best_model_name}**
+        
+        | Metric | Value |
+        |--------|-------|
+        | **Accuracy** | **{best_accuracy:.2%}** |
+        | **F1-Score** | **{best_f1:.4f}** |
+        | **Precision** | **{best_precision:.2%}** |
+        | **Recall** | **{best_recall:.2%}** |
+        
+        **Performance Range:** {worst_accuracy:.2%} - {best_accuracy:.2%} accuracy
+        """)
+        
+        # Show deployed models comparison only
+        st.markdown("#### Deployed Models Performance")
+        
+        # Add Stage column to indicate Baseline vs Tuned
+        comparison_df = deployed_df[[model_name_col, 'accuracy', 'f1_score', 'precision', 'recall']].copy()
+        
+        # Add stage label (Baseline or Tuned)
+        if 'run_name' in deployed_df.columns:
+            comparison_df['Stage'] = deployed_df['run_name'].apply(
+                lambda x: '🔵 Baseline' if 'Baseline' in str(x) else '🟢 Tuned' if 'Tuned' in str(x) else '⚪ Unknown'
+            )
+        elif 'display_name' in deployed_df.columns:
+            comparison_df['Stage'] = deployed_df['display_name'].apply(
+                lambda x: '🔵 Baseline' if 'Baseline' in str(x) else '🟢 Tuned' if 'Tuned' in str(x) else '⚪ Unknown'
+            )
+        else:
+            # Try to infer from model name
+            comparison_df['Stage'] = comparison_df[model_name_col].apply(
+                lambda x: '🔵 Baseline' if 'Baseline' in str(x) else '🟢 Tuned' if 'Tuned' in str(x) else '⚪ Model'
+            )
+        
+        # Reorder columns
+        comparison_df = comparison_df[[model_name_col, 'Stage', 'accuracy', 'f1_score', 'precision', 'recall']]
+        comparison_df.columns = ['Model', 'Stage', 'Accuracy', 'F1-Score', 'Precision', 'Recall']
+        comparison_df = comparison_df.sort_values('Accuracy', ascending=False)
+        
+        # Format percentages
+        comparison_df['Accuracy'] = comparison_df['Accuracy'].apply(lambda x: f"{x:.2%}")
+        comparison_df['F1-Score'] = comparison_df['F1-Score'].apply(lambda x: f"{x:.4f}")
+        comparison_df['Precision'] = comparison_df['Precision'].apply(lambda x: f"{x:.2%}")
+        comparison_df['Recall'] = comparison_df['Recall'].apply(lambda x: f"{x:.2%}")
+        
+        st.dataframe(comparison_df, use_container_width=True, hide_index=True)
+    
+    with col2:
+        st.markdown("### 💼 Business Impact")
+        st.markdown(f"""
+        - ✅ **{best_accuracy:.1%} accuracy** in predicting product success ({best_model_name})
+        - ✅ **{best_recall:.1%} recall** - catches most successful products
+        - ✅ **{best_precision:.1%} precision** - reliable positive predictions
+        - ✅ Can identify successful products before launch
+        - ✅ Optimize inventory based on predictions
+        - ✅ Data-driven product development decisions
+        - ✅ Reduce risk of product failures
+        - ✅ {improvement:.1%} performance range across models
+        """)
+        
+        # Key insights
+        st.markdown("#### 🎯 Key Insights")
+        total_models = len(deployed_df)
+        high_performers = len(deployed_df[deployed_df['accuracy'] > 0.90])
+        st.info(f"""
+        - Evaluated **{total_models} production-ready models**
+        - **{high_performers} models** achieved >90% accuracy
+        - Best model: **{best_model_name}** ({best_accuracy:.2%})
+        - Models: KNN, ANN_DNN, LDA, Naive Bayes
+        - All experiments tracked in MLflow
+        """)
+    
+    st.success(f"""
+    **Conclusion:** Successfully built and evaluated ML pipeline with **{best_accuracy:.2%} accuracy** using **{best_model_name}** as the best performing model. 
+    All 4 production models (KNN, ANN_DNN, LDA, Naive Bayes) tracked in MLflow for reproducibility and team collaboration.
     """)
-
-with col2:
-    st.markdown("### Business Impact")
-    st.markdown("""
-    - ✅ **95.30% accuracy** in predicting product success (KNN)
-    - ✅ **98.05% recall** - catches almost all successful products
-    - ✅ Can identify successful products before launch
-    - ✅ Optimize inventory based on predictions
-    - ✅ Data-driven product development decisions
-    - ✅ Reduce risk of product failures
-    """)
-
-# Deliverables
-
-st.success("""
-**Conclusion:** Successfully built and optimized ML pipeline with 95.30% accuracy using KNN as the primary model. 
-All 4 baseline models (KNN, ANN_DNN, LDA, Naive Bayes) tracked in MLflow for reproducibility and team collaboration.
-""")
+else:
+    # Fallback if no data
+    st.warning("No model performance data available. Please ensure MLflow database is accessible.")
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        st.markdown("### Model Performance")
+        st.info("Run models to see performance metrics here.")
+    
+    with col2:
+        st.markdown("### Business Impact")
+        st.info("Performance metrics will appear here after model training.")

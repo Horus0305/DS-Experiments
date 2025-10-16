@@ -10,6 +10,15 @@ from sklearn.metrics import accuracy_score, confusion_matrix
 import warnings
 warnings.filterwarnings('ignore')
 
+# XAI Libraries
+import shap
+try:
+    from lime import lime_tabular
+    LIME_AVAILABLE = True
+except ImportError:
+    LIME_AVAILABLE = False
+    st.warning("LIME not installed. Run: pip install lime")
+
 st.set_page_config(page_title="Explainability & Fairness", layout="wide")
 
 st.title("🔍 Explainable AI & Fairness Analysis")
@@ -239,391 +248,546 @@ that correlate with these attributes, leading to indirect discrimination.
 """)
 
 # =======================
-# DYNAMIC FEATURE IMPORTANCE ANALYSIS
+# FEATURE IMPORTANCE REFERENCE
 # =======================
-st.header("📊 Dynamic Feature Importance Analysis (All Models)")
-
-st.markdown("""
-**Analyzing feature importance across all 4 models** to understand what drives predictions.
-""")
-
-if models and preprocessor is not None:
-    # Select a subset for analysis
-    sample_size = min(100, len(df_data))
-    df_sample = df_data.sample(n=sample_size, random_state=42)
-    
-    if 'Success' in df_sample.columns:
-        X_sample = df_sample.drop('Success', axis=1)
-        try:
-            X_transformed = preprocessor.transform(X_sample)
-            feature_names = X_sample.columns.tolist()
-            
-            # Calculate feature importance for each model
-            feature_importance_all = {}
-            
-            for model_name, model in models.items():
-                if hasattr(model, 'feature_importances_'):
-                    # Tree-based models
-                    importance = model.feature_importances_
-                    feature_importance_all[model_name] = importance
-                elif hasattr(model, 'coef_'):
-                    # Linear models
-                    importance = np.abs(model.coef_[0]) if len(model.coef_.shape) > 1 else np.abs(model.coef_)
-                    feature_importance_all[model_name] = importance
-                else:
-                    # For models without built-in importance, use permutation importance simulation
-                    np.random.seed(42)
-                    # Simulate based on feature variance contribution
-                    importance = np.random.rand(len(feature_names))
-                    importance = importance / importance.sum()
-                    feature_importance_all[model_name] = importance
-            
-            # Create comparison visualization
-            fig = make_subplots(
-                rows=2, cols=2,
-                subplot_titles=list(models.keys()),
-                vertical_spacing=0.15,
-                horizontal_spacing=0.1
-            )
-            
-            colors = ['#51CF66', '#FFD43B', '#CC5DE8', '#4DABF7']
-            
-            for idx, (model_name, importance) in enumerate(feature_importance_all.items()):
-                row = idx // 2 + 1
-                col = idx % 2 + 1
-                
-                # Get top 10 features
-                top_indices = np.argsort(importance)[-10:]
-                top_features = [feature_names[i] if i < len(feature_names) else f'Feature {i}' for i in top_indices]
-                top_importance = importance[top_indices]
-                
-                fig.add_trace(
-                    go.Bar(
-                        y=top_features,
-                        x=top_importance,
-                        orientation='h',
-                        marker_color=colors[idx],
-                        showlegend=False,
-                        text=[f'{v:.3f}' for v in top_importance],
-                        textposition='outside'
-                    ),
-                    row=row, col=col
-                )
-            
-            fig.update_layout(
-                title_text="Feature Importance Comparison Across All Models",
-                height=800,
-                showlegend=False
-            )
-            
-            fig.update_xaxes(title_text="Importance Score")
-            fig.update_yaxes(title_text="Features")
-            
-            st.plotly_chart(fig, use_container_width=True)
-            
-            # Summary insights
-            st.markdown("### 🔍 Key Insights from Feature Importance")
-            
-            col1, col2, col3 = st.columns(3)
-            
-            with col1:
-                st.info("""
-                **Most Important Features:**
-                - Price
-                - Ingredients Count
-                - Has Cocoa
-                - Clean Label
-                """)
-            
-            with col2:
-                st.success("""
-                **Low-Impact Demographics:**
-                - Customer Gender: Low importance
-                - Age: Moderate importance
-                - Suggests minimal bias risk
-                """)
-            
-            with col3:
-                st.warning("""
-                **Model Agreement:**
-                - All models agree on top 5 features
-                - Consistent feature ranking
-                - High model reliability
-                """)
-                
-        except Exception as e:
-            st.error(f"Error computing feature importance: {str(e)}")
-            st.info("Falling back to static visualization")
-    else:
-        st.warning("Success column not found in dataset")
-else:
-    st.warning("Models not loaded. Showing static feature importance example.")
-    
-    col1, col2 = st.columns([1, 3])
-    
-    with col1:
-        selected_feature = st.selectbox(
-            "Select Feature:",
-            ['sentiment_score', 'average_rating', 'price', 'age_numeric', 'customer_gender']
-        )
-        
-        interaction_feature = st.selectbox(
-            "Color by (interaction):",
-            ['num_reviews', 'has_protein', 'age_numeric', 'customer_gender']
-        )
-    
-    with col2:
-        # Generate synthetic dependence data
-        n_points = 300
-        
-        if selected_feature == 'sentiment_score':
-            x_values = np.random.uniform(1, 5, n_points)
-            y_values = x_values * 0.35 + np.random.normal(0, 0.15, n_points)
-        elif selected_feature == 'age_numeric':
-            x_values = np.random.uniform(18, 70, n_points)
-            y_values = np.random.normal(0, 0.08, n_points)  # Flat - no age bias
-        elif selected_feature == 'customer_gender':
-            x_values = np.random.choice([0, 1], n_points)
-            y_values = np.random.normal(0, 0.05, n_points)  # Flat - no gender bias
-        else:
-            x_values = np.random.uniform(0, 100, n_points)
-            y_values = x_values * 0.01 + np.random.normal(0, 0.2, n_points)
-        
-        interaction_values = np.random.uniform(50, 500, n_points)
-        
-        fig = go.Figure()
-        
-        fig.add_trace(go.Scatter(
-            x=x_values,
-            y=y_values,
-            mode='markers',
-            marker=dict(
-                size=8,
-                color=interaction_values,
-                colorscale='Viridis',
-                showscale=True,
-                colorbar=dict(title=interaction_feature),
-                line=dict(width=0.5, color='white')
-            ),
-            name='SHAP values'
-        ))
-        
-        # Add trend line if strong relationship
-        if selected_feature in ['sentiment_score', 'average_rating']:
-            z = np.polyfit(x_values, y_values, 1)
-            p = np.poly1d(z)
-            x_trend = np.linspace(x_values.min(), x_values.max(), 100)
-            fig.add_trace(go.Scatter(
-                x=x_trend,
-                y=p(x_trend),
-                mode='lines',
-                line=dict(color='red', width=2, dash='dash'),
-                name='Trend'
-            ))
-        
-        fig.update_layout(
-            title=f'SHAP Dependence: {selected_feature}',
-            xaxis_title=selected_feature,
-            yaxis_title='SHAP value (impact on output)',
-            height=450,
-            xaxis=dict(zeroline=True),
-            yaxis=dict(zeroline=True, zerolinewidth=2, zerolinecolor='black')
-        )
-        
-        st.plotly_chart(fig, use_container_width=True)
-        
-        if selected_feature in ['age_numeric', 'customer_gender']:
-            st.success(f"""
-            ✅ **No bias detected in {selected_feature}:** SHAP values cluster around zero, 
-            indicating this feature has minimal impact on predictions regardless of its value.
-            """)
-        elif selected_feature in ['sentiment_score', 'average_rating']:
-            st.info(f"""
-            📈 **Strong positive relationship:** Higher {selected_feature} leads to higher 
-            prediction of success - this is expected and desirable business logic.
-            """)
-
-# SHAP Waterfall Plot Section
-st.markdown("### SHAP Waterfall Plot - Single Prediction Explanation")
-st.markdown("Step-by-step breakdown of how features contribute to one specific prediction")
-
-# Sample prediction
-col1, col2 = st.columns([1, 2])
-
-with col1:
-    st.markdown("#### Sample Customer Profile")
-    st.code("""
-Product: Protein Bar
-Sentiment Score: 4.2
-Average Rating: 4.5
-Num Reviews: 320
-Price: ₹450
-Has Protein: Yes
-Customer Gender: Female
-Age: 28 years
-    """)
-    
-    st.metric("Base Value (avg prediction)", "0.50")
-    st.metric("Final Prediction", "0.82", delta="+0.32")
-    st.success("**Result:** High Success Probability")
-
-with col2:
-    # Waterfall data
-    features_waterfall = [
-        'E[f(x)] = 0.50',
-        'sentiment_score = 4.2',
-        'average_rating = 4.5',
-        'num_reviews = 320',
-        'has_protein = Yes',
-        'price = ₹450',
-        'age_numeric = 28',
-        'customer_gender = F',
-        'f(x) = 0.82'
-    ]
-    
-    values_waterfall = [0.50, 0.18, 0.14, 0.09, 0.06, -0.03, 0.01, 0.00, 0.82]
-    measures = ['absolute', 'relative', 'relative', 'relative', 'relative', 
-               'relative', 'relative', 'relative', 'total']
-    
-    fig = go.Figure(go.Waterfall(
-        orientation="v",
-        measure=measures,
-        x=features_waterfall,
-        y=values_waterfall,
-        text=[f"{v:+.2f}" if m == 'relative' else f"{v:.2f}" 
-              for v, m in zip(values_waterfall, measures)],
-        textposition="outside",
-        connector={"line": {"color": "rgb(63, 63, 63)"}},
-        decreasing={"marker": {"color": "#FF6B6B"}},
-        increasing={"marker": {"color": "#51CF66"}},
-        totals={"marker": {"color": "#4DABF7"}}
-    ))
-    
-    fig.update_layout(
-        title="SHAP Waterfall: Feature Contributions to Prediction",
-        yaxis_title="Model Output Value",
-        height=500,
-        showlegend=False
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+st.header("📊 Feature Importance Analysis")
 
 st.info("""
-**Key Observations:**
-- Sentiment score (+0.18) and rating (+0.14) are strongest positive drivers
-- Price slightly reduces success probability (-0.03) - higher price products face more scrutiny
-- **Age and gender contributions are near zero** - good sign for fairness!
-- Final prediction (0.82) is well-explained by product quality, not demographics
+**For comprehensive feature importance analysis across all models, please refer to:**
+👉 **[ML Modeling & Tracking](/ML_Modeling_and_Tracking)** page
+
+That page includes:
+- ✅ Dynamic feature importance from actual trained models
+- ✅ Uses preprocessed features (as the model sees them)
+- ✅ Permutation importance for all model types
+- ✅ Aggregate view across all 4 models
+- ✅ Interactive tabs for each model comparison
+
+**This page focuses on:** Individual prediction explanations using SHAP & LIME.
 """)
 
-# LIME Analysis
-st.header("🔬 LIME: Local Interpretable Model-agnostic Explanations")
+st.markdown("---")
+
+# SHAP Analysis Section - DYNAMIC
+st.header("🎯 SHAP (SHapley Additive exPlanations) Analysis")
 
 st.markdown("""
-**LIME** explains individual predictions by:
-1. Creating a local linear approximation around the prediction
-2. Showing which features matter most for **that specific instance**
-3. Providing human-friendly explanations with confidence intervals
+**SHAP values** explain the contribution of each feature to individual predictions using game theory.
+- **Positive SHAP values** (red): Push prediction towards success (1)
+- **Negative SHAP values** (blue): Push prediction towards failure (0)
+- **Global explanations**: Show overall feature importance across all predictions
+- **Local explanations**: Show feature contributions for individual predictions
 """)
 
-st.markdown("### Compare Multiple Predictions")
+if models and preprocessor is not None and df_data is not None:
+    try:
+        # Model selection for SHAP
+        st.markdown("### ⚙️ Model Selection")
+        available_models = list(models.keys())
 
-# Three different customer scenarios
-col1, col2, col3 = st.columns(3)
-
-scenarios = [
-    {
-        'title': '👤 Customer A (High Success)',
-        'profile': """
-**Product:** Dark Chocolate
-**Sentiment:** 4.5/5
-**Rating:** 4.7/5
-**Price:** ₹350
-**Gender:** Female
-**Age:** 32
-**Protein:** Yes
-**Reviews:** 450
-        """,
-        'prediction': 0.89,
-        'features': ['sentiment_score > 4.0', 'has_protein = Yes', 'average_rating > 4.5', 
-                    'num_reviews > 400', 'price < 400', 'age: 25-35', 'gender: Female'],
-        'contributions': [0.28, 0.19, 0.17, 0.11, 0.08, 0.03, 0.01]
-    },
-    {
-        'title': '👤 Customer B (Medium Success)',
-        'profile': """
-**Product:** Energy Bar
-**Sentiment:** 3.2/5
-**Rating:** 3.5/5
-**Price:** ₹650
-**Gender:** Male
-**Age:** 45
-**Protein:** No
-**Reviews:** 120
-        """,
-        'prediction': 0.52,
-        'features': ['price > 600', 'sentiment_score < 3.5', 'average_rating < 4.0',
-                    'has_protein = No', 'num_reviews < 200', 'age: 40-50', 'gender: Male'],
-        'contributions': [-0.18, -0.15, -0.12, -0.08, -0.05, 0.02, 0.01]
-    },
-    {
-        'title': '👤 Customer C (Low Success)',
-        'profile': """
-**Product:** Snack Mix
-**Sentiment:** 2.1/5
-**Rating:** 2.8/5
-**Price:** ₹850
-**Gender:** Male
-**Age:** 55
-**Protein:** No
-**Reviews:** 45
-        """,
-        'prediction': 0.28,
-        'features': ['sentiment_score < 2.5', 'average_rating < 3.0', 'price > 800',
-                    'num_reviews < 100', 'has_protein = No', 'age: 50-60', 'gender: Male'],
-        'contributions': [-0.32, -0.28, -0.14, -0.11, -0.06, 0.01, 0.00]
-    }
-]
-
-for col, scenario in zip([col1, col2, col3], scenarios):
-    with col:
-        st.markdown(f"#### {scenario['title']}")
-        st.code(scenario['profile'])
+        sel_col_label, sel_col_input, sel_col_status = st.columns([1, 2, 2])
+        with sel_col_label:
+            st.markdown("Select Model for SHAP Analysis")
+        with sel_col_input:
+            selected_model_shap = st.selectbox(
+                "",
+                available_models,
+                index=available_models.index('KNN') if 'KNN' in available_models else 0,
+                key="shap_model_select",
+                label_visibility="collapsed"
+            )
+        with sel_col_status:
+            st.markdown(f"🎯 **Analyzing {selected_model_shap} model with SHAP**")
         
-        delta_color = "normal" if scenario['prediction'] > 0.6 else "inverse" if scenario['prediction'] < 0.4 else "off"
-        st.metric("Success Probability", f"{scenario['prediction']:.0%}", 
-                 delta="High" if scenario['prediction'] > 0.7 else "Low" if scenario['prediction'] < 0.4 else "Medium",
-                 delta_color=delta_color)
+        model = models[selected_model_shap]
         
-        # LIME explanation
-        colors = ['#51CF66' if x > 0 else '#FF6B6B' for x in scenario['contributions']]
+        # Prepare data for SHAP
+        X_shap = df_data.drop('Success', axis=1) if 'Success' in df_data.columns else df_data
+        y_shap = df_data['Success'] if 'Success' in df_data.columns else None
         
-        fig = go.Figure(go.Bar(
-            y=scenario['features'],
-            x=scenario['contributions'],
+        # Transform data
+        X_shap_transformed = preprocessor.transform(X_shap)
+        
+        # Get feature names after preprocessing
+        try:
+            feature_names = list(preprocessor.get_feature_names_out())
+        except:
+            feature_names = [f"Feature_{i}" for i in range(X_shap_transformed.shape[1])]
+        
+        # Limit samples for performance
+        max_samples = min(1000, len(X_shap_transformed))
+        X_shap_sample = X_shap_transformed[:max_samples]
+        y_shap_sample = y_shap[:max_samples] if y_shap is not None else None
+        
+        # Calculate SHAP values once for all visualizations
+        with st.spinner(f"Calculating SHAP values for {selected_model_shap} model... This may take 30-60 seconds."):
+            # Use appropriate SHAP explainer based on model type
+            if selected_model_shap in ['KNN', 'Naive Bayes', 'LDA']:
+                # For simpler models, use KernelExplainer
+                background_sample = shap.sample(X_shap_sample, min(50, len(X_shap_sample)))
+                
+                # Wrap predict function to ensure it returns probabilities
+                def predict_fn(X):
+                    preds = model.predict(X)
+                    if isinstance(preds[0], (np.ndarray, list)):
+                        preds = np.array([float(p[0] if len(p) > 0 else p) for p in preds])
+                    return np.clip(preds, 0, 1)
+                
+                explainer = shap.KernelExplainer(predict_fn, background_sample)
+                # Calculate for subset for performance
+                sample_size = min(100, len(X_shap_sample))
+                shap_values_global = explainer.shap_values(X_shap_sample[:sample_size], nsamples=50)
+                
+            else:  # Neural network
+                # Use DeepExplainer for neural networks
+                background_sample = X_shap_sample[np.random.choice(X_shap_sample.shape[0], min(50, len(X_shap_sample)), replace=False)]
+                explainer = shap.DeepExplainer(model, background_sample)
+                sample_size = min(100, len(X_shap_sample))
+                shap_values_global = explainer.shap_values(X_shap_sample[:sample_size])
+        
+        # Handle SHAP values format
+        if isinstance(shap_values_global, list):
+            shap_values_global = shap_values_global[0] if len(shap_values_global) > 0 else shap_values_global
+        
+        # GLOBAL EXPLANATION: Feature Importance Summary
+        st.markdown("---")
+        st.markdown("### 🌍 Global Explanation: Feature Importance Across All Predictions")
+        st.markdown("Shows which features are most important overall for the model's predictions.")
+        
+        # Calculate mean absolute SHAP values for global importance
+        # Robust casting to handle object dtypes from some explainers (e.g., DeepExplainer)
+        mean_abs_shap = np.mean(np.abs(np.array(shap_values_global, dtype=float)), axis=0).ravel()
+        
+        # Sort features by importance
+        sorted_idx = np.argsort(mean_abs_shap).astype(int)[::-1]
+        top_n_global = st.slider("Number of top features to display", 5, min(20, len(feature_names)), 10, key="global_features")
+        
+        top_indices = [int(i) for i in list(sorted_idx[:top_n_global])]
+        top_features = [feature_names[i] for i in top_indices]
+        top_importance = [float(mean_abs_shap[i]) for i in top_indices]
+        
+        # Create global feature importance plot
+        fig_global = go.Figure()
+        
+        fig_global.add_trace(go.Bar(
+            y=top_features[::-1],  # Reverse for better visualization
+            x=top_importance[::-1],
             orientation='h',
-            marker_color=colors,
-            text=[f"{x:+.2f}" for x in scenario['contributions']],
-            textposition='outside'
+            marker=dict(
+                color=top_importance[::-1],
+                colorscale='Viridis',
+                showscale=True,
+                colorbar=dict(title="Importance")
+            ),
+            text=[f"{val:.4f}" for val in top_importance[::-1]],
+            textposition='auto',
         ))
         
-        fig.update_layout(
-            title='LIME Explanation',
-            xaxis_title='Contribution',
-            height=400,
-            showlegend=False,
-            xaxis=dict(zeroline=True, zerolinewidth=2, zerolinecolor='black')
+        fig_global.update_layout(
+            title=f"Global Feature Importance (Mean |SHAP|) - {selected_model_shap}",
+            xaxis_title="Mean Absolute SHAP Value",
+            yaxis_title="Features",
+            height=400 + top_n_global * 20,
+            template="plotly_white",
+            showlegend=False
         )
         
-        st.plotly_chart(fig, use_container_width=True)
+        st.plotly_chart(fig_global, use_container_width=True)
+        
+        # Summary statistics
+        st.success(f"""
+        **📊 Global Feature Importance Insights:**
+        - **Most Important Feature:** {top_features[0]} (Impact: {top_importance[0]:.4f})
+        - **Top 3 Features:** {', '.join(top_features[:3])}
+        - **Total Features Analyzed:** {len(feature_names)}
+        - **Samples Used:** {sample_size}
+        
+        These features have the strongest average impact across all predictions in the model.
+        """)
+        
+        # SHAP Summary Plot (Beeswarm-style visualization)
+        st.markdown("### 📊 SHAP Summary Plot: Feature Impact Distribution")
+        st.markdown("Shows how each feature's values affect predictions (high values vs low values)")
+        
+        # Create summary plot data
+        top_n_summary = st.slider("Features in summary plot", 5, min(15, len(feature_names)), 10, key="summary_features")
+        
+        # Get top features for summary
+        summary_idx = sorted_idx[:top_n_summary]
+        
+        # Create box plot for each feature showing SHAP value distribution
+        fig_summary = go.Figure()
+        
+        for idx, feat_idx in enumerate(summary_idx):
+            feat_name = feature_names[int(feat_idx)]
+            shap_vals = np.array(shap_values_global, dtype=float)[:, int(feat_idx)]
+            
+            fig_summary.add_trace(go.Box(
+                x=shap_vals,
+                name=feat_name,
+                boxmean='sd',
+                marker=dict(color=f'rgba({idx*20}, {100+idx*10}, {200-idx*10}, 0.7)')
+            ))
+        
+        fig_summary.update_layout(
+            title=f"SHAP Value Distribution by Feature - {selected_model_shap}",
+            xaxis_title="SHAP Value (Impact on Prediction)",
+            yaxis_title="Features",
+            height=400 + top_n_summary * 25,
+            template="plotly_white",
+            showlegend=True
+        )
+        
+        st.plotly_chart(fig_summary, use_container_width=True)
+        
+        # LOCAL EXPLANATION: Individual Prediction
+        st.markdown("---")
+        st.markdown("### 🔍 Local Explanation: Individual Prediction (Waterfall Plot)")
+        st.markdown("Explains how features contribute to a specific prediction for one sample.")
+        
+        # Sample selection
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            sample_idx = st.slider(
+                "Select sample to explain (from test data)",
+                0, min(len(X_shap_sample) - 1, sample_size - 1), 0,
+                help="Choose which prediction to explain in detail"
+            )
+            st.caption("Samples are taken from the current dataset after preprocessing (first 1000 rows for performance).")
+        with col2:
+            num_display_features = st.selectbox("Features to display", [5, 10, 15, 20], index=1, key="local_features")
+        
+        # Get the sample
+        sample_to_explain = X_shap_sample[sample_idx:sample_idx+1]
+        
+        # Make prediction for this sample
+        prediction = model.predict(sample_to_explain)[0]
+        if isinstance(prediction, (np.ndarray, list)):
+            prediction = float(prediction[0] if len(prediction) > 0 else prediction)
+        prediction = np.clip(prediction, 0, 1)
+        
+        # Display prediction
+        pred_col1, pred_col2 = st.columns(2)
+        with pred_col1:
+            st.metric("Prediction for Sample #{}".format(sample_idx), 
+                     "✅ Success" if prediction >= 0.5 else "❌ Failure",
+                     delta=f"{prediction:.1%} probability")
+        with pred_col2:
+            if y_shap_sample is not None and sample_idx < len(y_shap_sample):
+                actual = y_shap_sample.iloc[sample_idx]
+                st.metric("Actual Label", 
+                         "✅ Success" if actual == 1 else "❌ Failure",
+                         delta="Correct ✓" if (prediction >= 0.5 and actual == 1) or (prediction < 0.5 and actual == 0) else "Incorrect ✗")
+        
+        # Get SHAP values for this sample
+        if sample_idx < len(shap_values_global):
+            shap_vals_sample = shap_values_global[sample_idx]
+        else:
+            # Calculate for this specific sample if not in global calculation
+            shap_vals_sample = explainer.shap_values(sample_to_explain, nsamples=50)
+            if isinstance(shap_vals_sample, list):
+                shap_vals_sample = shap_vals_sample[0]
+            shap_vals_sample = shap_vals_sample[0] if len(shap_vals_sample.shape) > 1 else shap_vals_sample
+        
+        # Create SHAP waterfall plot
+        st.markdown("#### Feature Contributions (SHAP Waterfall)")
+        
+        # Get base value (expected value)
+        base_value = explainer.expected_value
+        if isinstance(base_value, (list, np.ndarray)):
+            base_value = base_value[0] if len(base_value) > 0 else 0.5
+        
+        # Ensure 1D float array and sort by absolute SHAP value
+        shap_vals_sample_arr = np.array(shap_vals_sample, dtype=float).reshape(-1)
+        sorted_indices = np.argsort(np.abs(shap_vals_sample_arr))[::-1][:num_display_features]
+        sorted_indices = np.asarray(sorted_indices, dtype=int)
+        
+        # Prepare data with safe integer indexing
+        feature_names_display = [feature_names[int(i)] for i in sorted_indices]
+        shap_values_display = [float(shap_vals_sample_arr[int(i)]) for i in sorted_indices]
+        
+        # Create bar chart
+        colors = ['#FF4B4B' if val > 0 else '#4B79FF' for val in shap_values_display]
+        
+        fig_waterfall = go.Figure()
+        
+        fig_waterfall.add_trace(go.Bar(
+            y=feature_names_display,
+            x=shap_values_display,
+            orientation='h',
+            marker=dict(color=colors),
+            text=[f"{val:+.4f}" for val in shap_values_display],
+            textposition='auto',
+        ))
+        
+        fig_waterfall.update_layout(
+            title=f"SHAP Waterfall: Feature Contributions (Sample #{sample_idx})",
+            xaxis_title="SHAP Value (Impact on Prediction)",
+            yaxis_title="Features",
+            height=400 + num_display_features * 15,
+            showlegend=False,
+            template="plotly_white"
+        )
+        
+        fig_waterfall.add_vline(x=0, line_dash="dash", line_color="gray", line_width=1)
+        
+        st.plotly_chart(fig_waterfall, use_container_width=True)
+        
+        # Explanation
+        st.success(f"""
+        **📊 Local Explanation Interpretation:**
+        - **Base Value (Expected):** {base_value:.3f} - Average model prediction
+        - **Final Prediction:** {prediction:.3f}
+        - **Total SHAP Impact:** {np.sum(shap_vals_sample):.3f}
+        - **Feature Count:** {len(feature_names)} total features
+        
+        **How to read:**
+        - 🔴 **Red bars** push prediction towards Success (positive SHAP)
+        - 🔵 **Blue bars** push prediction towards Failure (negative SHAP)
+        - **Longer bars** = stronger impact on this specific prediction
+        """)
+        
+        # Summary statistics
+        st.markdown("### 📈 Sample-Specific Feature Analysis")
+        summary_col1, summary_col2, summary_col3 = st.columns(3)
+        
+        with summary_col1:
+            max_pos_idx = int(np.argmax(shap_vals_sample_arr))
+            st.metric("Strongest Positive Feature", 
+                     feature_names[max_pos_idx] if shap_vals_sample_arr[max_pos_idx] > 0 else "None",
+                     delta=f"+{shap_vals_sample_arr[max_pos_idx]:.4f}" if shap_vals_sample_arr[max_pos_idx] > 0 else "N/A")
+        
+        with summary_col2:
+            min_neg_idx = int(np.argmin(shap_vals_sample_arr))
+            st.metric("Strongest Negative Feature",
+                     feature_names[min_neg_idx] if shap_vals_sample_arr[min_neg_idx] < 0 else "None",
+                     delta=f"{shap_vals_sample_arr[min_neg_idx]:.4f}" if shap_vals_sample_arr[min_neg_idx] < 0 else "N/A")
+        
+        with summary_col3:
+            st.metric("Contributing Features",
+                     f"{int(np.sum(shap_vals_sample_arr > 0))} positive",
+                     delta=f"{int(np.sum(shap_vals_sample_arr < 0))} negative")
+        
+    except Exception as e:
+        st.error(f"Error calculating SHAP values: {str(e)}")
+        st.info("SHAP analysis requires compatible model and data. Some models may not support SHAP directly.")
+        import traceback
+        st.code(traceback.format_exc())
+else:
+    st.warning("⚠️ Models or data not loaded. Cannot perform SHAP analysis.")
 
-st.success("""
-**🔍 LIME Insights Across All Scenarios:**
-- Product quality (sentiment, rating) consistently drives predictions
-- Demographics (gender, age) show minimal contribution (near zero) in all cases
-- **Same pattern across different customer profiles** - suggests no demographic bias
-- Predictions are explainable and align with business logic
+# LIME Analysis Section - DYNAMIC
+st.markdown("---")
+st.header("🔬 LIME (Local Interpretable Model-agnostic Explanations)")
+
+st.markdown("""
+**LIME** explains predictions by fitting a simple interpretable model locally around the prediction.
+- Works with **any model type** (model-agnostic)
+- Fits an interpretable linear model around each specific prediction
+- Shows which features matter most for individual predictions
 """)
+
+if LIME_AVAILABLE and models and preprocessor is not None and df_data is not None:
+    try:
+        # Model selection for LIME
+        st.markdown("### ⚙️ Model Selection")
+        available_models_lime = list(models.keys())
+
+        lime_label_col, lime_input_col, lime_status_col = st.columns([1, 2, 2])
+        with lime_label_col:
+            st.markdown("Select Model for LIME Analysis")
+        with lime_input_col:
+            selected_model_lime = st.selectbox(
+                "",
+                available_models_lime,
+                index=available_models_lime.index('KNN') if 'KNN' in available_models_lime else 0,
+                key="lime_model_select",
+                label_visibility="collapsed"
+            )
+        with lime_status_col:
+            st.markdown(f"🔬 **Analyzing {selected_model_lime} model with LIME**")
+        
+        model_lime = models[selected_model_lime]
+        
+        st.markdown("### 🎯 LIME Local Explanation - Individual Prediction")
+        
+        # Prepare data
+        X_lime = df_data.drop('Success', axis=1) if 'Success' in df_data.columns else df_data
+        y_lime = df_data['Success'] if 'Success' in df_data.columns else None
+        X_lime_transformed = preprocessor.transform(X_lime)
+        
+        # Limit for performance
+        max_samples_lime = min(1000, len(X_lime_transformed))
+        X_lime_sample = X_lime_transformed[:max_samples_lime]
+        y_lime_sample = y_lime[:max_samples_lime] if y_lime is not None else None
+        
+        # Get feature names
+        try:
+            feature_names_lime = list(preprocessor.get_feature_names_out())
+        except:
+            feature_names_lime = [f"Feature_{i}" for i in range(X_lime_transformed.shape[1])]
+        
+        # Sample selection
+        lime_col1, lime_col2 = st.columns([3, 1])
+        with lime_col1:
+            lime_sample_idx = st.slider(
+                "Select sample for LIME explanation",
+                0, max_samples_lime - 1, 5,
+                help="Choose which prediction to explain with LIME"
+            )
+        with lime_col2:
+            num_features_lime = st.selectbox("Features in explanation", [5, 10, 15, 20], index=1, key="lime_features")
+        
+        # Get sample
+        lime_sample = X_lime_sample[lime_sample_idx]
+        
+        # Make prediction
+        prediction_lime = model_lime.predict(lime_sample.reshape(1, -1))[0]
+        if isinstance(prediction_lime, (np.ndarray, list)):
+            prediction_lime = float(prediction_lime[0] if len(prediction_lime) > 0 else prediction_lime)
+        prediction_lime = np.clip(prediction_lime, 0, 1)
+        
+        # Display prediction
+        lime_pred_col1, lime_pred_col2 = st.columns(2)
+        with lime_pred_col1:
+            st.metric("Prediction for Sample #{}".format(lime_sample_idx),
+                     "✅ Success" if prediction_lime >= 0.5 else "❌ Failure",
+                     delta=f"{prediction_lime:.1%} probability")
+        with lime_pred_col2:
+            if y_lime_sample is not None and lime_sample_idx < len(y_lime_sample):
+                actual_lime = y_lime_sample.iloc[lime_sample_idx]
+                st.metric("Actual Label",
+                         "✅ Success" if actual_lime == 1 else "❌ Failure",
+                         delta="Correct ✓" if (prediction_lime >= 0.5 and actual_lime == 1) or (prediction_lime < 0.5 and actual_lime == 0) else "Incorrect ✗")
+        
+        # Create LIME explainer
+        with st.spinner(f"Generating LIME explanation for {selected_model_lime} model..."):
+            # Wrap predict function
+            def predict_proba_wrapper(X):
+                preds = model_lime.predict(X)
+                if not hasattr(model_lime, 'predict_proba'):
+                    # Convert predictions to probabilities
+                    if len(preds) > 0 and isinstance(preds[0], (np.ndarray, list)):
+                        preds = np.array([float(p[0] if len(p) > 0 else p) for p in preds])
+                    preds = np.clip(preds, 0, 1)
+                    return np.column_stack([1 - preds, preds])
+                else:
+                    return model_lime.predict_proba(X)
+            
+            # Create explainer
+            lime_explainer = lime_tabular.LimeTabularExplainer(
+                X_lime_sample,
+                feature_names=feature_names_lime,
+                class_names=['Failure', 'Success'],
+                mode='classification',
+                discretize_continuous=True
+            )
+            
+            # Generate explanation
+            lime_exp = lime_explainer.explain_instance(
+                lime_sample,
+                predict_proba_wrapper,
+                num_features=num_features_lime,
+                num_samples=500
+            )
+        
+        # Visualize LIME explanation
+        st.markdown("#### Feature Contributions (LIME Local Model)")
+        
+        # Get explanation as list
+        exp_list = lime_exp.as_list()
+        
+        # Create visualization
+        fig_lime = go.Figure()
+        
+        features = [item[0] for item in exp_list]
+        values = [item[1] for item in exp_list]
+        colors_lime = ['green' if val > 0 else 'red' for val in values]
+        
+        fig_lime.add_trace(go.Bar(
+            y=features,
+            x=values,
+            orientation='h',
+            marker=dict(color=colors_lime),
+            text=[f"{val:.4f}" for val in values],
+            textposition='auto',
+        ))
+        
+        fig_lime.update_layout(
+            title=f"LIME Feature Importance (Sample #{lime_sample_idx})",
+            xaxis_title="Feature Contribution",
+            yaxis_title="Features",
+            height=400 + num_features_lime * 15,
+            showlegend=False,
+            template="plotly_white"
+        )
+        
+        fig_lime.add_vline(x=0, line_dash="dash", line_color="gray")
+        
+        st.plotly_chart(fig_lime, use_container_width=True)
+
+        # Optional: Waterfall-like cumulative plot for LIME (ordered contributions)
+        with st.expander("View LIME cumulative impact plot (waterfall style)"):
+            # Order by absolute contribution
+            order = np.argsort(np.abs(values))[::-1]
+            ordered_vals = np.array(values)[order]
+            ordered_feats = np.array(features)[order]
+
+            cumulative = np.cumsum(ordered_vals)
+            wf_fig = go.Figure()
+            wf_fig.add_trace(go.Bar(
+                x=[f"{ordered_feats[i]}" for i in range(len(ordered_feats))],
+                y=ordered_vals,
+                marker_color=["#37B24D" if v > 0 else "#F03E3E" for v in ordered_vals],
+                name="Contribution"
+            ))
+            wf_fig.add_trace(go.Scatter(
+                x=[f"{ordered_feats[i]}" for i in range(len(ordered_feats))],
+                y=cumulative,
+                mode="lines+markers",
+                name="Cumulative impact",
+                line=dict(color="#4C6EF5")
+            ))
+            wf_fig.update_layout(
+                title=f"LIME Cumulative Impact (Sample #{lime_sample_idx})",
+                xaxis_title="Features (sorted by |contribution|)",
+                yaxis_title="Contribution / Cumulative",
+                template="plotly_white",
+                height=350
+            )
+            st.plotly_chart(wf_fig, use_container_width=True)
+
+        st.caption("LIME uses the same preprocessed dataset as SHAP. Sample is selected from the first 1000 rows for performance.")
+        
+        # Prediction probabilities
+        pred_proba = lime_exp.predict_proba
+        st.success(f"""
+        **📊 LIME Interpretation:**
+        - **Predicted Probability:** Success: {pred_proba[1]:.3f} | Failure: {pred_proba[0]:.3f}
+        - **Local Model Score:** {lime_exp.score:.3f} (how well local model fits)
+        
+        **How to read:**
+        - **Green bars** push prediction towards Success
+        - **Red bars** push prediction towards Failure
+        - Values show the magnitude of contribution
+        - LIME fits a simple linear model around this specific prediction
+        """)
+        
+        # Feature values for this sample
+        with st.expander("📋 View Feature Values for This Sample"):
+            feature_value_df = pd.DataFrame({
+                'Feature': feature_names_lime,
+                'Value': lime_sample
+            })
+            st.dataframe(feature_value_df, use_container_width=True, hide_index=True)
+            
+    except Exception as e:
+        st.error(f"Error generating LIME explanation: {str(e)}")
+        st.info("LIME analysis requires the lime package. Install with: pip install lime")
+elif not LIME_AVAILABLE:
+    st.warning("⚠️ LIME not installed. Run: `pip install lime` to enable LIME explanations.")
+else:
+    st.warning("⚠️ Models or data not loaded. Cannot perform LIME analysis.")
 
 # Fairness Analysis
 st.header("⚖️ Fairness Analysis with Fairlearn")
@@ -632,228 +796,477 @@ st.markdown("""
 We audit the model for **discrimination** across sensitive attributes using statistical fairness metrics.
 """)
 
-# Fairness by Gender
+# Fairness by Gender - DYNAMIC
 st.subheader("1. Performance Parity by Gender")
 
-gender_metrics = {
-    'Gender': ['Female', 'Male'],
-    'Accuracy': [0.952, 0.948],
-    'Precision': [0.935, 0.931],
-    'Recall': [0.970, 0.966],
-    'F1-Score': [0.952, 0.948],
-    'Sample Size': [5250, 5250]
-}
+if models and preprocessor is not None and 'Success' in df_data.columns and 'customer_gender' in df_data.columns:
+    try:
+        # Prepare data
+        X_fair = df_data.drop('Success', axis=1)
+        y_fair = df_data['Success']
+        X_fair_transformed = preprocessor.transform(X_fair)
+        
+        # Get best model
+        best_model_name = 'KNN' if 'KNN' in models else list(models.keys())[0]
+        model_fair = models[best_model_name]
+        
+        # Make predictions
+        predictions_fair = model_fair.predict(X_fair_transformed)
+        
+        # Handle neural network outputs
+        if len(predictions_fair.shape) > 1:
+            predictions_fair = predictions_fair.flatten()
+        if predictions_fair.dtype in [np.float16, np.float32, np.float64]:
+            predictions_fair = np.clip(np.round(predictions_fair), 0, 1).astype(int)
+        
+        # Split by gender
+        gender_female = df_data['customer_gender'] == 1.0
+        gender_male = df_data['customer_gender'] == 0.0
+        
+        # Calculate metrics for each gender
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
+        
+        # Female metrics
+        if gender_female.sum() > 0:
+            y_female = y_fair[gender_female]
+            pred_female = predictions_fair[gender_female]
+            acc_female = accuracy_score(y_female, pred_female)
+            prec_female = precision_score(y_female, pred_female, zero_division=0)
+            rec_female = recall_score(y_female, pred_female, zero_division=0)
+            f1_female = f1_score(y_female, pred_female, zero_division=0)
+            count_female = gender_female.sum()
+        else:
+            acc_female = prec_female = rec_female = f1_female = 0.0
+            count_female = 0
+        
+        # Male metrics
+        if gender_male.sum() > 0:
+            y_male = y_fair[gender_male]
+            pred_male = predictions_fair[gender_male]
+            acc_male = accuracy_score(y_male, pred_male)
+            prec_male = precision_score(y_male, pred_male, zero_division=0)
+            rec_male = recall_score(y_male, pred_male, zero_division=0)
+            f1_male = f1_score(y_male, pred_male, zero_division=0)
+            count_male = gender_male.sum()
+        else:
+            acc_male = prec_male = rec_male = f1_male = 0.0
+            count_male = 0
+        
+        gender_metrics = {
+            'Gender': ['Female', 'Male'],
+            'Accuracy': [acc_female, acc_male],
+            'Precision': [prec_female, prec_male],
+            'Recall': [rec_female, rec_male],
+            'F1-Score': [f1_female, f1_male],
+            'Sample Size': [int(count_female), int(count_male)]
+        }
+        
+        df_gender = pd.DataFrame(gender_metrics)
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            st.dataframe(
+                df_gender.style.background_gradient(subset=['Accuracy', 'Precision', 'Recall', 'F1-Score'], cmap='Blues').format({
+                    'Accuracy': '{:.3f}',
+                    'Precision': '{:.3f}',
+                    'Recall': '{:.3f}',
+                    'F1-Score': '{:.3f}'
+                }),
+                use_container_width=True,
+                hide_index=True
+            )
+            
+            # Calculate fairness metrics
+            st.markdown("#### Fairness Metrics")
+            
+            acc_diff = abs(gender_metrics['Accuracy'][0] - gender_metrics['Accuracy'][1])
+            recall_diff = abs(gender_metrics['Recall'][0] - gender_metrics['Recall'][1])
+            
+            metric_col1, metric_col2 = st.columns(2)
+            
+            fairness_threshold = 0.1
+            acc_fair = acc_diff < fairness_threshold
+            recall_fair = recall_diff < fairness_threshold
+            
+            metric_col1.metric(
+                "Demographic Parity Diff",
+                f"{acc_diff:.3f}",
+                delta="✅ Fair" if acc_fair else "⚠️ Check",
+                delta_color="normal" if acc_fair else "inverse"
+            )
+            metric_col2.metric(
+                "Equalized Odds Diff",
+                f"{recall_diff:.3f}",
+                delta="✅ Fair" if recall_fair else "⚠️ Check",
+                delta_color="normal" if recall_fair else "inverse"
+            )
+        
+        with col2:
+            fig = go.Figure()
+            
+            metrics_to_plot = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
+            colors = ['#4DABF7', '#51CF66', '#FFD43B', '#FF6B6B']
+            
+            for idx, metric in enumerate(metrics_to_plot):
+                fig.add_trace(go.Bar(
+                    name=metric,
+                    x=df_gender['Gender'],
+                    y=df_gender[metric],
+                    marker_color=colors[idx],
+                    text=[f"{v:.1%}" for v in df_gender[metric]],
+                    textposition='outside'
+                ))
+            
+            fig.update_layout(
+                title=f'Model Performance by Gender ({best_model_name})',
+                yaxis_title='Score',
+                barmode='group',
+                height=400,
+                yaxis_range=[0, 1.1]
+            )
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Overall fairness assessment
+        if acc_fair and recall_fair:
+            st.success(f"""
+            ✅ **No Gender Bias Detected:**
+            - Performance difference between genders: {acc_diff:.1%} (within threshold)
+            - Sample sizes: Female={count_female:,}, Male={count_male:,}
+            - All fairness metrics within acceptable thresholds (<{fairness_threshold})
+            - Model treats both genders fairly
+            """)
+        else:
+            st.warning(f"""
+            ⚠️ **Potential Gender Disparity Detected:**
+            - Accuracy difference: {acc_diff:.1%}
+            - Recall difference: {recall_diff:.1%}
+            - Consider reviewing model for potential bias
+            """)
+            
+    except Exception as e:
+        st.error(f"Error calculating gender fairness metrics: {str(e)}")
+        st.info("Using demonstration values for visualization")
+        # Fallback to example
+        gender_metrics = {
+            'Gender': ['Female', 'Male'],
+            'Accuracy': [0.95, 0.95],
+            'Precision': [0.93, 0.93],
+            'Recall': [0.97, 0.97],
+            'F1-Score': [0.95, 0.95],
+            'Sample Size': [5000, 5000]
+        }
+        df_gender = pd.DataFrame(gender_metrics)
+        st.dataframe(df_gender, use_container_width=True, hide_index=True)
+else:
+    st.warning("Models or data not loaded. Cannot perform gender fairness analysis.")
 
-df_gender = pd.DataFrame(gender_metrics)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    st.dataframe(
-        df_gender.style.background_gradient(subset=['Accuracy', 'Precision', 'Recall', 'F1-Score'], cmap='Blues'),
-        use_container_width=True,
-        hide_index=True
-    )
-    
-    # Calculate fairness metrics
-    st.markdown("#### Fairness Metrics")
-    
-    acc_diff = abs(gender_metrics['Accuracy'][0] - gender_metrics['Accuracy'][1])
-    recall_diff = abs(gender_metrics['Recall'][0] - gender_metrics['Recall'][1])
-    
-    metric_col1, metric_col2 = st.columns(2)
-    metric_col1.metric(
-        "Demographic Parity Diff",
-        f"{acc_diff:.3f}",
-        delta="✅ Fair (< 0.1)"
-    )
-    metric_col2.metric(
-        "Equalized Odds Diff",
-        f"{recall_diff:.3f}",
-        delta="✅ Fair (< 0.1)"
-    )
-
-with col2:
-    fig = go.Figure()
-    
-    metrics_to_plot = ['Accuracy', 'Precision', 'Recall', 'F1-Score']
-    colors = ['#4DABF7', '#51CF66', '#FFD43B', '#FF6B6B']
-    
-    for idx, metric in enumerate(metrics_to_plot):
-        fig.add_trace(go.Bar(
-            name=metric,
-            x=df_gender['Gender'],
-            y=df_gender[metric],
-            marker_color=colors[idx],
-            text=[f"{v:.1%}" for v in df_gender[metric]],
-            textposition='outside'
-        ))
-    
-    fig.update_layout(
-        title='Model Performance by Gender',
-        yaxis_title='Score',
-        barmode='group',
-        height=400,
-        yaxis_range=[0, 1.1]
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
-
-st.success("""
-✅ **No Gender Bias Detected:**
-- Performance difference between genders: < 0.5% (negligible)
-- Equal sample sizes ensure balanced evaluation
-- All fairness metrics well within acceptable thresholds
-- Model treats both genders fairly
-""")
-
-# Fairness by Age
+# Fairness by Age - DYNAMIC
 st.subheader("2. Performance Parity by Age Group")
 
-age_metrics = {
-    'Age Group': ['18-30', '31-45', '46-60', '60+'],
-    'Accuracy': [0.954, 0.950, 0.947, 0.943],
-    'Precision': [0.938, 0.933, 0.929, 0.923],
-    'Recall': [0.971, 0.968, 0.966, 0.964],
-    'F1-Score': [0.954, 0.950, 0.947, 0.943],
-    'Sample Size': [3500, 4200, 2100, 700]
-}
-
-df_age = pd.DataFrame(age_metrics)
-
-col1, col2 = st.columns([2, 3])
-
-with col1:
-    st.dataframe(
-        df_age.style.background_gradient(subset=['Accuracy', 'Sample Size'], cmap='Greens'),
-        use_container_width=True,
-        hide_index=True
-    )
-
-with col2:
-    fig = make_subplots(
-        rows=1, cols=2,
-        subplot_titles=('Performance by Age', 'Sample Distribution'),
-        specs=[[{"secondary_y": False}, {"secondary_y": False}]]
-    )
-    
-    fig.add_trace(
-        go.Scatter(
-            x=df_age['Age Group'],
-            y=df_age['Accuracy'],
-            mode='lines+markers',
-            name='Accuracy',
-            line=dict(color='#4DABF7', width=3),
-            marker=dict(size=10)
-        ),
-        row=1, col=1
-    )
-    
-    fig.add_trace(
-        go.Bar(
-            x=df_age['Age Group'],
-            y=df_age['Sample Size'],
-            name='Samples',
-            marker_color='#FFD43B',
-            text=df_age['Sample Size'],
-            textposition='outside'
-        ),
-        row=1, col=2
-    )
-    
-    fig.update_xaxes(title_text="Age Group", row=1, col=1)
-    fig.update_xaxes(title_text="Age Group", row=1, col=2)
-    fig.update_yaxes(title_text="Accuracy", range=[0.9, 1.0], row=1, col=1)
-    fig.update_yaxes(title_text="Count", row=1, col=2)
-    
-    fig.update_layout(height=400, showlegend=False)
-    st.plotly_chart(fig, use_container_width=True)
-
-col1, col2 = st.columns(2)
-
-with col1:
-    age_diff = max(age_metrics['Accuracy']) - min(age_metrics['Accuracy'])
-    st.metric(
-        "Max Age Group Difference",
-        f"{age_diff:.3f}",
-        delta="✅ Acceptable (< 0.02)"
-    )
-
-with col2:
-    st.warning("""
-    ⚠️ **Minor Observation:**
-    - Slight decrease in accuracy for 60+ group (0.943 vs 0.954)
-    - Likely due to smaller sample size (700 vs 3500)
-    - Difference is small (1.1%) and acceptable
-    - **Not indicative of age bias**, more likely data availability
-    """)
+if models and preprocessor is not None and 'Success' in df_data.columns and 'age_numeric' in df_data.columns:
+    try:
+        # Define age groups
+        df_data['age_group'] = pd.cut(
+            df_data['age_numeric'], 
+            bins=[0, 30, 45, 60, 100], 
+            labels=['18-30', '31-45', '46-60', '60+']
+        )
+        
+        age_groups = ['18-30', '31-45', '46-60', '60+']
+        age_metrics_list = []
+        
+        # Calculate metrics for each age group
+        for age_group in age_groups:
+            age_mask = df_data['age_group'] == age_group
+            
+            if age_mask.sum() > 0:
+                y_age = y_fair[age_mask]
+                pred_age = predictions_fair[age_mask]
+                
+                age_metrics_list.append({
+                    'Age Group': age_group,
+                    'Accuracy': accuracy_score(y_age, pred_age),
+                    'Precision': precision_score(y_age, pred_age, zero_division=0),
+                    'Recall': recall_score(y_age, pred_age, zero_division=0),
+                    'F1-Score': f1_score(y_age, pred_age, zero_division=0),
+                    'Sample Size': int(age_mask.sum())
+                })
+            else:
+                age_metrics_list.append({
+                    'Age Group': age_group,
+                    'Accuracy': 0.0,
+                    'Precision': 0.0,
+                    'Recall': 0.0,
+                    'F1-Score': 0.0,
+                    'Sample Size': 0
+                })
+        
+        df_age = pd.DataFrame(age_metrics_list)
+        
+        col1, col2 = st.columns([2, 3])
+        
+        with col1:
+            st.dataframe(
+                df_age.style.background_gradient(subset=['Accuracy'], cmap='Greens').format({
+                    'Accuracy': '{:.3f}',
+                    'Precision': '{:.3f}',
+                    'Recall': '{:.3f}',
+                    'F1-Score': '{:.3f}'
+                }),
+                use_container_width=True,
+                hide_index=True
+            )
+        
+        with col2:
+            fig = make_subplots(
+                rows=1, cols=2,
+                subplot_titles=(f'Performance by Age ({best_model_name})', 'Sample Distribution'),
+                specs=[[{"secondary_y": False}, {"secondary_y": False}]]
+            )
+            
+            fig.add_trace(
+                go.Scatter(
+                    x=df_age['Age Group'],
+                    y=df_age['Accuracy'],
+                    mode='lines+markers',
+                    name='Accuracy',
+                    line=dict(color='#4DABF7', width=3),
+                    marker=dict(size=10)
+                ),
+                row=1, col=1
+            )
+            
+            fig.add_trace(
+                go.Bar(
+                    x=df_age['Age Group'],
+                    y=df_age['Sample Size'],
+                    name='Samples',
+                    marker_color='#FFD43B',
+                    text=df_age['Sample Size'],
+                    textposition='outside'
+                ),
+                row=1, col=2
+            )
+            
+            fig.update_xaxes(title_text="Age Group", row=1, col=1)
+            fig.update_xaxes(title_text="Age Group", row=1, col=2)
+            fig.update_yaxes(title_text="Accuracy", row=1, col=1)
+            fig.update_yaxes(title_text="Count", row=1, col=2)
+            fig.update_layout(height=400, showlegend=True)
+            
+            st.plotly_chart(fig, use_container_width=True)
+        
+        # Age fairness assessment
+        acc_range = df_age['Accuracy'].max() - df_age['Accuracy'].min()
+        if acc_range < 0.05:
+            st.success(f"""
+            ✅ **No Age Bias Detected:**
+            - Performance variation across age groups: {acc_range:.1%} (minimal)
+            - Consistent model performance regardless of age
+            - Fair treatment across all demographics
+            """)
+        else:
+            st.warning(f"""
+            ⚠️ **Age Group Performance Variation:**
+            - Accuracy range: {acc_range:.1%}
+            - Some age groups may experience different model performance
+            - Consider additional analysis for underperforming groups
+            """)
+            
+    except Exception as e:
+        st.error(f"Error calculating age fairness metrics: {str(e)}")
+        st.info("Using demonstration values")
+        age_metrics = {
+            'Age Group': ['18-30', '31-45', '46-60', '60+'],
+            'Accuracy': [0.95, 0.95, 0.95, 0.94],
+            'Sample Size': [3000, 4000, 2000, 1000]
+        }
+        df_age = pd.DataFrame(age_metrics)
+        st.dataframe(df_age, use_container_width=True, hide_index=True)
+else:
+    st.warning("Models or data not loaded. Cannot perform age fairness analysis.")
 
 # Fairness Dashboard
 st.subheader("3. Comprehensive Fairness Dashboard")
 
-fairness_summary = {
-    'Metric': [
-        'Demographic Parity (Gender)',
-        'Equalized Odds (Gender)',
-        'Disparate Impact Ratio (Gender)',
-        'Demographic Parity (Age)',
-        'Equalized Odds (Age)',
-        'Max Performance Gap (Age)'
-    ],
-    'Value': [0.004, 0.004, 1.004, 0.011, 0.007, 0.011],
-    'Threshold': ['< 0.1', '< 0.1', '> 0.8', '< 0.1', '< 0.1', '< 0.05'],
-    'Status': ['✅ Pass', '✅ Pass', '✅ Pass', '✅ Pass', '✅ Pass', '✅ Pass']
-}
+if models and preprocessor is not None and 'Success' in df_data.columns:
+    try:
+        # Prepare full dataset and predictions (independent of previous blocks)
+        X_all = df_data.drop('Success', axis=1)
+        y_all = df_data['Success']
+        X_all_t = preprocessor.transform(X_all)
+        best_model_name = 'KNN' if 'KNN' in models else list(models.keys())[0]
+        mdl = models[best_model_name]
+        preds = mdl.predict(X_all_t)
+        if len(preds.shape) > 1:
+            preds = preds.flatten()
+        # Convert to class labels when models return probabilities
+        if preds.dtype in [np.float16, np.float32, np.float64]:
+            preds = np.clip(np.round(preds), 0, 1).astype(int)
 
-df_fairness = pd.DataFrame(fairness_summary)
+        # Gender metrics
+        gender_available = 'customer_gender' in df_data.columns
+        if gender_available:
+            mask_f = df_data['customer_gender'] == 1.0
+            mask_m = df_data['customer_gender'] == 0.0
+            pos_f = preds[mask_f].mean() if mask_f.any() else np.nan
+            pos_m = preds[mask_m].mean() if mask_m.any() else np.nan
+            parity_diff_gender = float(abs((pos_f if not np.isnan(pos_f) else 0) - (pos_m if not np.isnan(pos_m) else 0)))
+            # recall per gender
+            from sklearn.metrics import recall_score
+            rec_f = recall_score(y_all[mask_f], preds[mask_f], zero_division=0) if mask_f.any() else np.nan
+            rec_m = recall_score(y_all[mask_m], preds[mask_m], zero_division=0) if mask_m.any() else np.nan
+            eq_odds_diff_gender = float(abs((rec_f if not np.isnan(rec_f) else 0) - (rec_m if not np.isnan(rec_m) else 0)))
+            # disparate impact ratio
+            if (not np.isnan(pos_f)) and (not np.isnan(pos_m)) and pos_m > 0:
+                di_ratio_gender = float(min(pos_f, pos_m) / max(pos_f, pos_m))
+            else:
+                di_ratio_gender = np.nan
+        else:
+            parity_diff_gender = eq_odds_diff_gender = di_ratio_gender = np.nan
 
-col1, col2 = st.columns([3, 2])
+        # Age metrics
+        age_available = 'age_numeric' in df_data.columns
+        if age_available:
+            age_bins = pd.cut(df_data['age_numeric'], bins=[0, 30, 45, 60, 100], labels=['18-30', '31-45', '46-60', '60+'])
+            groups = age_bins.unique().tolist()
+            # Positive rate and recall per group
+            pos_rates = []
+            recalls = []
+            for g in ['18-30', '31-45', '46-60', '60+']:
+                mask = (age_bins == g)
+                if mask.any():
+                    pos_rates.append(preds[mask].mean())
+                    recalls.append(recall_score(y_all[mask], preds[mask], zero_division=0))
+                else:
+                    pos_rates.append(np.nan)
+                    recalls.append(np.nan)
+            # Replace nans with zeros for diffs
+            pos_arr = np.nan_to_num(np.array(pos_rates, dtype=float))
+            rec_arr = np.nan_to_num(np.array(recalls, dtype=float))
+            parity_diff_age = float(np.max(pos_arr) - np.min(pos_arr))
+            eq_odds_diff_age = float(np.max(rec_arr) - np.min(rec_arr))
+            # Accuracy gap (reuse if df_age exists, else compute here)
+            try:
+                max_perf_gap_age = float(df_age['Accuracy'].max() - df_age['Accuracy'].min())
+            except Exception:
+                # compute per age group accuracy on the fly
+                accs = []
+                for g in ['18-30', '31-45', '46-60', '60+']:
+                    mask = (age_bins == g)
+                    if mask.any():
+                        accs.append(accuracy_score(y_all[mask], preds[mask]))
+                    else:
+                        accs.append(np.nan)
+                acc_arr = np.nan_to_num(np.array(accs, dtype=float))
+                max_perf_gap_age = float(np.max(acc_arr) - np.min(acc_arr))
+        else:
+            parity_diff_age = eq_odds_diff_age = max_perf_gap_age = np.nan
 
-with col1:
-    st.dataframe(df_fairness, use_container_width=True, hide_index=True)
+        # Thresholds
+        th_parity = 0.10
+        th_eqodds = 0.10
+        th_di = 0.80
+        th_perf_gap = 0.05
 
-with col2:
-    # Fairness score visualization
-    pass_count = df_fairness['Status'].str.contains('Pass').sum()
-    total_count = len(df_fairness)
-    fairness_score = (pass_count / total_count) * 100
-    
-    fig = go.Figure(go.Indicator(
-        mode="gauge+number+delta",
-        value=fairness_score,
-        title={'text': "Fairness Score"},
-        delta={'reference': 80, 'increasing': {'color': "#51CF66"}},
-        gauge={
-            'axis': {'range': [None, 100]},
-            'bar': {'color': "#4DABF7"},
-            'steps': [
-                {'range': [0, 60], 'color': "#FFE5E5"},
-                {'range': [60, 80], 'color': "#FFF4E5"},
-                {'range': [80, 100], 'color': "#E7F5FF"}
-            ],
-            'threshold': {
-                'line': {'color': "red", 'width': 4},
-                'thickness': 0.75,
-                'value': 80
-            }
-        }
-    ))
-    
-    fig.update_layout(height=300)
-    st.plotly_chart(fig, use_container_width=True)
+        # Build dynamic fairness table
+        metrics_labels = [
+            'Demographic Parity (Gender)',
+            'Equalized Odds (Gender)',
+            'Disparate Impact Ratio (Gender)',
+            'Demographic Parity (Age)',
+            'Equalized Odds (Age)',
+            'Max Performance Gap (Age)'
+        ]
+        values = [
+            parity_diff_gender,
+            eq_odds_diff_gender,
+            di_ratio_gender,
+            parity_diff_age,
+            eq_odds_diff_age,
+            max_perf_gap_age
+        ]
+        thresholds = ['< 0.10', '< 0.10', '> 0.80', '< 0.10', '< 0.10', '< 0.05']
 
-st.success("""
-### 🎉 Fairness Audit Results: PASSED
+        statuses = []
+        for lbl, val in zip(metrics_labels, values):
+            if np.isnan(val):
+                statuses.append('⚠️ N/A')
+            elif 'Disparate Impact' in lbl:
+                statuses.append('✅ Pass' if val >= th_di else '❌ Fail')
+            elif 'Max Performance Gap' in lbl:
+                statuses.append('✅ Pass' if val < th_perf_gap else '❌ Fail')
+            else:
+                statuses.append('✅ Pass' if val < th_parity else '❌ Fail')
 
-**All fairness metrics pass regulatory thresholds:**
-- ✅ No gender discrimination detected
-- ✅ No age discrimination detected  
-- ✅ Equal treatment across all demographic groups
-- ✅ Performance differences within acceptable ranges
-- ✅ Model ready for ethical deployment
+        df_fairness = pd.DataFrame({
+            'Metric': metrics_labels,
+            'Value': [None if np.isnan(v) else (round(v, 3) if 'Disparate' not in m else round(v, 3)) for m, v in zip(metrics_labels, values)],
+            'Threshold': thresholds,
+            'Status': statuses
+        })
 
-**Fairness Score: 100%** (6/6 metrics passed)
-""")
+        col1, col2 = st.columns([3, 2])
+
+        with col1:
+            st.dataframe(df_fairness, use_container_width=True, hide_index=True)
+
+        with col2:
+            # Fairness score visualization (percentage of Pass among available metrics)
+            valid_rows = df_fairness[~df_fairness['Status'].str.contains('N/A')]
+            pass_count = valid_rows['Status'].str.contains('Pass').sum()
+            total_count = len(valid_rows) if len(valid_rows) > 0 else 1
+            fairness_score = (pass_count / total_count) * 100
+            
+            fig = go.Figure(go.Indicator(
+                mode="gauge+number+delta",
+                value=fairness_score,
+                title={'text': "Fairness Score"},
+                delta={'reference': 80, 'increasing': {'color': "#51CF66"}},
+                gauge={
+                    'axis': {'range': [None, 100]},
+                    'bar': {'color': "#4DABF7"},
+                    'steps': [
+                        {'range': [0, 60], 'color': "#FFE5E5"},
+                        {'range': [60, 80], 'color': "#FFF4E5"},
+                        {'range': [80, 100], 'color': "#E7F5FF"}
+                    ],
+                    'threshold': {
+                        'line': {'color': "red", 'width': 4},
+                        'thickness': 0.75,
+                        'value': 80
+                    }
+                }
+            ))
+            
+            fig.update_layout(height=300)
+            st.plotly_chart(fig, use_container_width=True)
+
+        # Dynamic summary
+        failed = df_fairness[df_fairness['Status'] == '❌ Fail']['Metric'].tolist()
+        if len(failed) == 0:
+            st.success(f"""
+            ### 🎉 Fairness Audit Results: PASSED
+
+            - All applicable fairness metrics are within thresholds
+            - Overall Fairness Score: {fairness_score:.0f}%
+            - Model is suitable for ethical deployment with current data
+            """)
+        else:
+            st.warning(f"""
+            ### ⚠️ Fairness Audit Results: ACTION NEEDED
+
+            The following metrics exceeded thresholds:
+            - {"\n- ".join(failed)}
+
+            Consider applying bias mitigation strategies below and re-evaluating.
+            """)
+    except Exception as e:
+        st.error(f"Error building fairness dashboard: {str(e)}")
+else:
+    st.warning("Prerequisites missing to compute fairness dashboard (models/data).")
 
 # Bias Mitigation Strategies
 st.header("🛡️ Bias Mitigation Strategies")

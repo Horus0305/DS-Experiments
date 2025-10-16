@@ -513,73 +513,27 @@ if st.button("🚀 Get Predictions from All Models", type="primary", use_contain
             - Improve packaging sustainability
             """)
 
-# Feature Importance Insights
+# Feature Importance Reference
 st.markdown("---")
 st.header("🔍 Key Success Factors")
 
-col1, col2 = st.columns(2)
+st.info("""
+**For detailed feature importance analysis, please refer to:**  
+👉 **[ML Modeling & Tracking](/ML_Modeling_and_Tracking)** page - Feature Importance section
 
-with col1:
-    # Feature importance chart
-    features_importance = {
-        'Price': 35,
-        'Has Cocoa': 25,
-        'Has Protein': 15,
-        'Clean Label': 10,
-        'Has Dates': 10,
-        'Category': 5
-    }
-    
-    fig = go.Figure(go.Bar(
-        x=list(features_importance.values()),
-        y=list(features_importance.keys()),
-        orientation='h',
-        marker=dict(
-            color=list(features_importance.values()),
-            colorscale='Viridis',
-            showscale=True,
-            colorbar=dict(title="Importance %")
-        ),
-        text=[f"{v}%" for v in features_importance.values()],
-        textposition='outside'
-    ))
-    
-    fig.update_layout(
-        title="Feature Importance for Success Prediction",
-        xaxis_title="Importance (%)",
-        yaxis_title="Feature",
-        height=400
-    )
-    
-    st.plotly_chart(fig, use_container_width=True)
+That page shows:
+- ✅ **Real feature importance** from your trained models
+- ✅ **Dynamic extraction** using permutation importance
+- ✅ **All 13 features** with their actual impact
+- ✅ **Comparison across all 4 models** (KNN, ANN_DNN, LDA, Naive Bayes)
 
-with col2:
-    st.markdown("### 📈 What Drives Success?")
-    
-    st.markdown("""
-    **High Impact Features:**
-    
-    1. **💰 Price (35%)**: Premium pricing signals quality
-       - ₹1000+ → High success probability
-       - ₹700-1000 → Moderate probability
-       - <₹450 → Lower probability
-    
-    2. **🍫 Has Cocoa (25%)**: Premium ingredient
-       - Cocoa products perform significantly better
-       - Associated with quality and indulgence
-    
-    3. **💪 Has Protein (15%)**: Health appeal
-       - Protein adds functional benefit
-       - Appeals to fitness-conscious customers
-    
-    4. **✨ Clean Label (10%)**: Trust factor
-       - Clean label certification boosts confidence
-       - Aligns with health-conscious trends
-    
-    5. **🌴 Has Dates (10%)**: Natural sweetener
-       - Dates indicate natural ingredients
-       - Premium positioning
-    """)
+**General insights for product success:**
+- **Premium pricing** signals quality
+- **Premium ingredients** (cocoa, protein, dates) drive success
+- **Clean label certification** builds trust
+- **Product attributes matter more** than customer demographics
+""")
+
 
 # Model Input Features Reference
 st.markdown("---")
