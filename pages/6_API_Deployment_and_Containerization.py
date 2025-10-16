@@ -73,14 +73,12 @@ st.header("🎯 Interactive Model Testing")
 
 st.markdown("### Select Models to Compare")
 
-# Available models with their accuracies (best version - baseline or tuned based on performance)
+# Available models with their accuracies (baseline models only)
 available_models = {
-    "KNN": {"accuracy": 0.9530, "recall": 0.9805, "color": "#51CF66"},  # Baseline (better than tuned)
-    "ANN_DNN": {"accuracy": 0.9483, "recall": 0.9976, "color": "#FFD43B"},  # Baseline (better than tuned)
-    "Logistic Regression": {"accuracy": 0.9997, "recall": 1.0000, "color": "#748FFC"},  # Tuned (improved!)
-    "SVM": {"accuracy": 0.9997, "recall": 1.0000, "color": "#FF6B6B"},  # Tuned (improved!)
-    "Naive Bayes": {"accuracy": 0.7556, "recall": 0.6330, "color": "#4DABF7"},  # No improvement
-    "LDA": {"accuracy": 0.9470, "recall": 1.0000, "color": "#CC5DE8"}  # Baseline (better than tuned)
+    "KNN": {"accuracy": 0.9530, "recall": 0.9805, "color": "#51CF66"},  # Best baseline
+    "ANN_DNN": {"accuracy": 0.9483, "recall": 0.9976, "color": "#FFD43B"},  # Good performance
+    "LDA": {"accuracy": 0.9470, "recall": 1.0000, "color": "#CC5DE8"},  # Solid baseline
+    "Naive Bayes": {"accuracy": 0.7556, "recall": 0.6330, "color": "#4DABF7"}  # Reference model
 }
 
 col1, col2 = st.columns([1, 2])
