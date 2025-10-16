@@ -547,11 +547,18 @@ if len(baseline_models) > 0 and len(tuned_models) > 0 and 'accuracy' in baseline
                 col_idx = idx % 4
                 improvement = (row['Tuned'] - row['Baseline']) * 100
                 
+                # Format improvement with proper sign handling
+                improvement_str = f"{improvement:+.1f}%" if improvement != 0 else f"{improvement:.1f}%"
+                
+                # For accuracy metrics: positive = good (green up), negative = bad (red down)
+                delta_color = "normal"
+                
                 with cols[col_idx]:
                     st.metric(
-                        f"{row['model']}",
-                        f"+{improvement:.1f}%",
-                        delta=f"{row['Baseline']:.1%} → {row['Tuned']:.1%}"
+                        label=f"{row['model']}",
+                        value=f"{row['Tuned']:.1%}",
+                        delta=improvement_str,
+                        delta_color=delta_color
                     )
         
         # Show top realistic models (accuracy < 100%)
@@ -575,10 +582,22 @@ if len(baseline_models) > 0 and len(tuned_models) > 0 and 'accuracy' in baseline
                 col_idx = idx % 3
                 with cols[col_idx]:
                     rank_emoji = "🥇" if idx == 0 else "🥈" if idx == 1 else "🥉" if idx == 2 else "⭐"
+                    
+                    # Calculate improvement and format with proper sign
+                    if pd.notna(row['Baseline']):
+                        improvement = (row['Tuned'] - row['Baseline']) * 100
+                        delta_str = f"{improvement:+.1f}%"
+                        # For accuracy: positive = good (green), negative = bad (red)
+                        delta_color = "normal"
+                    else:
+                        delta_str = None
+                        delta_color = "off"
+                    
                     st.metric(
                         label=f"{rank_emoji} {row['model']}",
                         value=f"{row['Tuned']:.2%}",
-                        delta=f"+{(row['Tuned'] - row['Baseline']) * 100:.1f}%" if pd.notna(row['Baseline']) else None
+                        delta=delta_str,
+                        delta_color=delta_color
                     )
             
             st.info(f"💡 **Recommendation:** Consider any of the above {len(realistic_tuned)} models for deployment. All show strong, generalizable performance.")
@@ -1186,15 +1205,23 @@ if not summary_df.empty:
         # Fallback to all data if filtering fails
         deployed_df = summary_df
     
-    # Get best performing model from deployed models
-    best_model = deployed_df.loc[deployed_df['accuracy'].idxmax()]
+    # Get best performing model from deployed models (excluding overfitting models)
+    non_overfit_deployed = deployed_df[deployed_df['accuracy'] < 0.999]
+    
+    if not non_overfit_deployed.empty:
+        # Use best non-overfitting model
+        best_model = non_overfit_deployed.loc[non_overfit_deployed['accuracy'].idxmax()]
+    else:
+        # Fallback to best overall if all are overfitting
+        best_model = deployed_df.loc[deployed_df['accuracy'].idxmax()]
+    
     best_accuracy = best_model['accuracy']
     best_model_name = best_model.get('display_name', best_model.get('model_name', 'Unknown'))
     
-    # Get best metrics across deployed models
-    best_f1 = deployed_df['f1_score'].max() if 'f1_score' in deployed_df.columns else 0
-    best_precision = deployed_df['precision'].max() if 'precision' in deployed_df.columns else 0
-    best_recall = deployed_df['recall'].max() if 'recall' in deployed_df.columns else 0
+    # Get metrics from the SAME best model, not max across all models
+    best_f1 = best_model['f1_score'] if 'f1_score' in best_model and pd.notna(best_model['f1_score']) else 0
+    best_precision = best_model['precision'] if 'precision' in best_model and pd.notna(best_model['precision']) else 0
+    best_recall = best_model['recall'] if 'recall' in best_model and pd.notna(best_model['recall']) else 0
     
     # Get worst performer to show improvement
     worst_accuracy = deployed_df['accuracy'].min()

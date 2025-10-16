@@ -4,24 +4,24 @@
 [![Streamlit](https://img.shields.io/badge/Streamlit-1.28+-red.svg)](https://streamlit.io/)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.104+-green.svg)](https://fastapi.tiangolo.com/)
 [![License](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/Tests-Passing-brightgreen.svg)](tests/)
-[![Accuracy](https://img.shields.io/badge/Accuracy-99.97%25-success.svg)](docs/)
+[![Live Demo](https://img.shields.io/badge/Live-Demo-success.svg)](https://ds-dashboard-sem7.streamlit.app/)
 
-> **A comprehensive machine learning system for predicting product success using 6 classification models, SHAP explainability, fairness analysis, and interactive deployment.**
+> **A comprehensive machine learning system for predicting product success using classification models, SHAP/LIME explainability, fairness analysis, and interactive deployment.**
 
 ---
 
 ## 📋 Table of Contents
 
 - [Overview](#-overview)
+- [Live Demo](#-live-demo)
 - [Key Features](#-key-features)
-- [Experiments](#-experiments-completed)
-- [Models & Performance](#-models--performance)
-- [Live Deployments](#-live-deployments)
 - [Quick Start](#-quick-start)
 - [Project Structure](#-project-structure)
-- [Technologies](#-technologies-used)
-- [Responsible AI](#-responsible-ai)
+- [Technologies Used](#-technologies-used)
+- [Running the Application](#-running-the-application)
+- [API Usage](#-api-usage)
+- [Docker Deployment](#-docker-deployment)
+- [Testing](#-testing)
 - [Documentation](#-documentation)
 - [Contributing](#-contributing)
 - [License](#-license)
@@ -30,13 +30,45 @@
 
 ## 🎯 Overview
 
-This project develops an end-to-end machine learning pipeline to predict product success for **The Whole Truth Foods**, a health-focused food brand. The system analyzes 13+ product features to forecast whether a product will succeed or fail in the market with **95.30% accuracy**.
+This project develops an end-to-end machine learning pipeline to predict product success for **The Whole Truth Foods**, a health-focused food brand. The system analyzes 13+ product features to forecast whether a product will succeed or fail in the market.
 
-### 🎬 Demo
+### 🎓 Project Context
 
-**Streamlit App:** 🚀 [Deploy to Streamlit Cloud](https://share.streamlit.io/)  
-**API Documentation:** 📚 [FastAPI Swagger Docs](#) *(Deploy to Railway/Render)*  
-**GitHub Repository:** 💻 [DS-Experiments](https://github.com/Horus0305/DS-Experiments)
+This comprehensive data science project completes **8 experiments** covering the full ML lifecycle:
+
+1. **Introduction & Project Setup** - Dataset exploration and objectives
+2. **Data Cleaning & Preprocessing** - Missing values, outliers, feature engineering
+3. **Exploratory Data Analysis** - Statistical analysis and visualizations
+4. **Machine Learning Modeling** - Model training, tuning, and MLflow tracking
+5. **Explainability & Fairness** - SHAP/LIME analysis and bias detection
+6. **API Deployment** - FastAPI REST endpoints with containerization
+7. **Dashboard & Responsible AI** - Interactive UI and ethical AI practices
+8. **Final Portfolio** - Complete documentation and deployment
+
+---
+
+## 🚀 Live Demo
+
+### 🎨 Interactive Dashboard
+
+**🔗 Live Application:** [https://ds-dashboard-sem7.streamlit.app/](https://ds-dashboard-sem7.streamlit.app/)
+
+Explore all 7 experiment pages:
+- 📊 Data cleaning and preprocessing results
+- 📈 Interactive EDA visualizations
+- 🤖 Multi-model comparison interface
+- � SHAP & LIME explainability tools
+- ⚖️ Fairness and bias analysis
+- 🎯 Real-time predictions with explanations
+
+### 📚 API Documentation
+
+**FastAPI Endpoints:** Available for local deployment
+- `GET /` - API information
+- `GET /health` - Health check
+- `POST /predict` - Single prediction
+- `POST /batch-predict` - Batch predictions
+- `GET /model-info` - Model details
 
 ### 🎓 Project Context
 
@@ -55,42 +87,45 @@ This comprehensive data science project completes **8 experiments** covering the
 
 ## ✨ Key Features
 
-### 🤖 Machine Learning
-- **6 Classification Models** trained and evaluated
-- **95.30% Best Accuracy** (KNN model)
-- **Hyperparameter Tuning** via GridSearchCV
-- **MLflow Tracking** for experiment management
-- **Cross-Validation** with stratified K-Fold
+### 🤖 Machine Learning Pipeline
+- Multiple classification models (KNN, ANN/DNN, LDA, Naive Bayes)
+- Hyperparameter tuning with GridSearchCV
+- MLflow experiment tracking
+- Dynamic feature importance analysis
+- Cross-validation and performance metrics
 
-### 🔍 Explainability
-- **SHAP Analysis** for every prediction
-- **Feature Importance** visualization
-- **Local & Global Explanations**
-- **Counterfactual Examples**
+### 🔍 Model Explainability
+- **SHAP Analysis** - Global and local feature explanations
+- **LIME Analysis** - Model-agnostic interpretability
+- Interactive visualizations (waterfall plots, force plots)
+- Feature importance rankings
 
-### ⚖️ Fairness & Ethics
-- **Bias Testing** across demographics
-- **Fair ML Practices** implementation
-- **Responsible AI Documentation**
-- **Privacy-Preserving** design (no PII)
+### ⚖️ Responsible AI
+- Bias detection across demographics (gender, age, categories)
+- Fairness metrics and analysis
+- Privacy-preserving design (no PII collection)
+- Comprehensive ethical AI documentation
 
-### 🎨 Interactive UI
-- **Streamlit Dashboard** with 7 experiment pages
-- **Multi-Model Comparison** interface
-- **Real-time Predictions** with explanations
-- **Data Visualization** with Plotly
+### 🎨 Interactive Dashboard
+- 7 experiment pages covering full ML lifecycle
+- Multi-model comparison interface
+- Real-time predictions with explanations
+- Interactive data visualizations with Plotly
+- Deployed on Streamlit Cloud
 
 ### 🔌 REST API
-- **FastAPI** microservice
-- **5 Endpoints** (predict, batch, health, info)
-- **Swagger/ReDoc** documentation
-- **Pydantic Validation**
+- FastAPI microservice architecture
+- Multiple endpoints (predict, batch, health, info)
+- Automatic Swagger/ReDoc documentation
+- Pydantic data validation
+- Docker containerization support
 
-### 🐳 Deployment
-- **Docker Containers** (Streamlit + API)
-- **CI/CD Pipeline** (GitHub Actions)
-- **Cloud-Ready** (Streamlit Cloud, Railway, Render)
-- **Comprehensive Tests** (pytest, >85% coverage)
+### 🐳 Production Ready
+- Docker containers for both Streamlit and FastAPI
+- Comprehensive test suite (pytest)
+- CI/CD pipeline ready
+- Git LFS for model versioning
+- Complete deployment guides
 
 ---
 
@@ -101,8 +136,8 @@ This comprehensive data science project completes **8 experiments** covering the
 | 1️⃣ | **Introduction & Setup** | ✅ Complete | Project objectives, dataset overview, environment setup |
 | 2️⃣ | **Data Cleaning** | ✅ Complete | Missing value handling, outlier removal, feature engineering |
 | 3️⃣ | **EDA & Statistics** | ✅ Complete | Visualizations, correlations, statistical tests (Chi-square, ANOVA) |
-| 4️⃣ | **ML Modeling** | ✅ Complete | 6 models, hyperparameter tuning, MLflow tracking |
-| 5️⃣ | **Explainability** | ✅ Complete | SHAP analysis, fairness metrics, bias detection |
+| 4️⃣ | **ML Modeling** | ✅ Complete | 4 models, hyperparameter tuning, MLflow tracking, dynamic feature importance |
+| 5️⃣ | **Explainability** | ✅ Complete | SHAP global/local analysis, LIME explanations, fairness metrics, bias detection |
 | 6️⃣ | **API Deployment** | ✅ Complete | Streamlit app, FastAPI, Docker containers |
 | 7️⃣ | **Dashboard & AI** | ✅ Complete | Responsible AI report, comprehensive dashboard |
 | 8️⃣ | **Final Portfolio** | ✅ Complete | Documentation, deployment guides, GitHub repo |
@@ -144,15 +179,17 @@ Why Logistic Regression/SVM (Tuned)?
 **Alternative:** KNN (95.30%) - No tuning needed, good baseline
 ```
 
-### 📊 Feature Importance (SHAP)
+### 📊 Feature Importance (Dynamic Analysis)
 
-Top 5 features influencing success:
+Top features influencing success (calculated using permutation importance):
 
-1. **Price (35%)** - Premium pricing signals quality
-2. **Has Cocoa (25%)** - Premium ingredient indicator
-3. **Has Protein (15%)** - Health appeal factor
-4. **Clean Label (10%)** - Trust and transparency
-5. **Has Dates (10%)** - Natural sweetener preference
+1. **Price** - Premium pricing signals quality
+2. **Has Cocoa** - Premium ingredient indicator  
+3. **Has Protein** - Health appeal factor
+4. **Clean Label** - Trust and transparency
+5. **Has Dates** - Natural sweetener preference
+
+*Note: Feature importance is dynamically calculated from actual trained models using permutation analysis, providing real insights into what drives predictions.*
 
 ---
 
@@ -163,8 +200,9 @@ Top 5 features influencing success:
 **Platform:** Streamlit Cloud  
 **Features:**
 - 7 interactive experiment pages
-- Multi-model comparison
-- Real-time predictions with SHAP explanations
+- Multi-model comparison (4 models: KNN, ANN_DNN, LDA, Naive Bayes)
+- Real-time predictions with SHAP & LIME explanations
+- Dynamic feature importance analysis
 - Data exploration & visualization
 - Fairness analysis dashboard
 
@@ -240,76 +278,216 @@ curl -X POST "http://localhost:8000/predict" \
 
 ### Prerequisites
 
-- Python 3.10+
-- Git with Git LFS
-- Docker (optional)
+- **Python 3.10+** installed
+- **Git** with **Git LFS** (for large model files)
+- **Docker** (optional, for containerized deployment)
 
-### Installation
+### Installation Steps
 
-1. **Clone Repository:**
+#### 1. Clone the Repository
+
 ```bash
 git clone https://github.com/Horus0305/DS-Experiments.git
 cd DS-Experiments
 ```
 
-2. **Install Dependencies:**
+#### 2. Set Up Virtual Environment (Recommended)
+
+**Windows:**
+```bash
+python -m venv venv
+venv\Scripts\activate
+```
+
+**Linux/Mac:**
+```bash
+python -m venv venv
+source venv/bin/activate
+```
+
+#### 3. Install Python Dependencies
+
 ```bash
 pip install -r requirements.txt
 ```
 
-3. **Pull Model Files (Git LFS):**
+#### 4. Pull Model Files (Git LFS)
+
 ```bash
+git lfs install
 git lfs pull
 ```
 
-### Running the Application
+This will download the trained model pickle files from Git LFS storage.
 
-**Option 1: Streamlit (Recommended for UI)**
+---
+
+## 💻 Running the Application
+
+### Option 1: Streamlit Dashboard (Recommended)
+
+Run the interactive web dashboard:
+
 ```bash
 streamlit run app.py
 ```
-Access: http://localhost:8501
 
-**Option 2: FastAPI (Recommended for API)**
+**Access:** Open your browser to `http://localhost:8501`
+
+**Features:**
+- Explore all 8 experiments interactively
+- Test model predictions in real-time
+- View SHAP/LIME explanations
+- Analyze fairness metrics
+- Compare model performance
+
+### Option 2: FastAPI REST API
+
+Run the API server for programmatic access:
+
 ```bash
 uvicorn main:app --reload --port 8000
 ```
-Access: http://localhost:8000/docs
 
-**Option 3: Both Services Simultaneously**
+**Access:**
+- **Swagger UI:** `http://localhost:8000/docs`
+- **ReDoc:** `http://localhost:8000/redoc`
+- **API Base:** `http://localhost:8000`
 
-PowerShell:
+### Option 3: Run Both Services
+
+**PowerShell (Windows):**
 ```powershell
 .\run_both.ps1
 ```
 
-Bash:
+**Bash (Linux/Mac):**
 ```bash
+chmod +x run_both.sh
 ./run_both.sh
 ```
 
-**Option 4: Docker Containers**
+This starts both Streamlit (port 8501) and FastAPI (port 8000) simultaneously.
 
-Streamlit:
+---
+
+## � Docker Deployment
+
+### Build and Run Containers
+
+#### Streamlit Container
+
 ```bash
+# Build image
 docker build -t ds-experiments:latest .
+
+# Run container
 docker run -p 8501:8501 ds-experiments:latest
 ```
 
-FastAPI:
+Access: `http://localhost:8501`
+
+#### FastAPI Container
+
 ```bash
+# Build image
 docker build -f Dockerfile.api -t ds-api:latest .
+
+# Run container
 docker run -p 8000:8000 ds-api:latest
 ```
 
-Docker Compose (Both):
+Access: `http://localhost:8000/docs`
+
+#### Docker Compose (Both Services)
+
 ```bash
+# Start both services
 docker-compose up
+
+# Run in detached mode
+docker-compose up -d
+
+# Stop services
+docker-compose down
+```
+
+**Ports:**
+- Streamlit: `http://localhost:8501`
+- FastAPI: `http://localhost:8000`
+
+---
+
+## 🔌 API Usage
+
+### Make Predictions via API
+
+#### Single Prediction
+
+```bash
+curl -X POST "http://localhost:8000/predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "price": 1047,
+    "discount": 20,
+    "category": "Dark Chocolate",
+    "ingredients_count": 8,
+    "has_dates": true,
+    "has_cocoa": true,
+    "has_protein": true,
+    "packaging_type": "premium_box",
+    "season": "winter",
+    "customer_gender": "female",
+    "age_numeric": 35,
+    "shelf_life": 365,
+    "clean_label": true
+  }'
+```
+
+#### Response Format
+
+```json
+{
+  "prediction": "success",
+  "probability": 0.95,
+  "confidence": "high",
+  "model_used": "knn_model",
+  "shap_explanation": {
+    "price": 0.32,
+    "has_cocoa": 0.25,
+    "has_protein": 0.15
+  }
+}
+```
+
+#### Batch Predictions
+
+```bash
+curl -X POST "http://localhost:8000/batch-predict" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "products": [
+      { "price": 1047, "discount": 20, ... },
+      { "price": 899, "discount": 15, ... }
+    ]
+  }'
+```
+
+#### Health Check
+
+```bash
+curl http://localhost:8000/health
+```
+
+#### Model Information
+
+```bash
+curl http://localhost:8000/model-info
 ```
 
 ---
 
-## 📁 Project Structure
+## �📁 Project Structure
 
 ```
 DS-Experiments/
@@ -333,12 +511,10 @@ DS-Experiments/
 │
 ├── dsmodelpickl+preprocessor/      # Trained models & preprocessor
 │   ├── preprocessor.pkl            # StandardScaler + encoders
-│   ├── knn_model.pkl              # Best model (95.30%)
-│   ├── ann_dnn_model.pkl          # Neural network
-│   ├── logistic_regression_model.pkl
-│   ├── svm_model.pkl
-│   ├── naive_bayes_model.pkl
-│   └── lda_model.pkl
+│   ├── knn_model.pkl              # Best model (95.30% accuracy)
+│   ├── ann_dnn_model.pkl          # Neural network (94.83% accuracy)
+│   ├── lda_model.pkl              # Linear Discriminant Analysis (94.70%)
+│   └── naive_bayes_model.pkl      # Naive Bayes (75.56%)
 │
 ├── data/                           # Dataset
 │   └── WholeTruthFoodDataset-combined.csv
@@ -378,190 +554,126 @@ DS-Experiments/
 
 ## 🛠️ Technologies Used
 
-### Languages & Frameworks
-- **Python 3.10** - Core programming language
-- **Streamlit 1.28+** - Interactive web dashboard
-- **FastAPI 0.104+** - REST API framework
-- **Pydantic 2.5+** - Data validation
+### Core Technologies
+| Category | Technologies |
+|----------|-------------|
+| **Language** | Python 3.10+ |
+| **Web Frameworks** | Streamlit 1.28+, FastAPI 0.104+ |
+| **ML Libraries** | Scikit-learn, TensorFlow, XGBoost |
+| **Explainability** | SHAP, LIME |
+| **Experiment Tracking** | MLflow |
+| **Data Processing** | Pandas, NumPy |
+| **Visualization** | Plotly, Seaborn, Matplotlib |
+| **Deployment** | Docker, Uvicorn, Git LFS |
+| **Testing** | Pytest |
+| **Cloud Platform** | Streamlit Cloud |
 
-### Machine Learning
-- **Scikit-learn 1.6.1** - ML algorithms
-- **TensorFlow 2.13+** - Neural networks
-- **SHAP 0.43+** - Model explainability
-- **MLflow 2.8+** - Experiment tracking
-- **Imbalanced-learn** - Class balancing
+### Key Dependencies
 
-### Data & Visualization
-- **Pandas 2.0+** - Data manipulation
-- **NumPy 1.24+** - Numerical computing
-- **Plotly 5.18+** - Interactive charts
-- **Seaborn** - Statistical visualization
-- **Matplotlib** - Basic plotting
-
-### Deployment & Testing
-- **Docker** - Containerization
-- **Uvicorn** - ASGI server
-- **Pytest 7.4+** - Testing framework
-- **GitHub Actions** - CI/CD pipeline
-- **Git LFS** - Large file storage
-
-### Cloud Platforms (Recommended)
-- **Streamlit Cloud** - Streamlit deployment
-- **Railway** - FastAPI deployment
-- **Render** - Alternative API hosting
-- **Google Cloud Run** - Serverless containers
+```
+streamlit>=1.28.0
+fastapi>=0.104.0
+uvicorn>=0.24.0
+scikit-learn>=1.3.0
+tensorflow>=2.13.0
+shap>=0.43.0
+lime>=0.2.0.1
+mlflow>=2.8.0
+pandas>=2.0.0
+numpy>=1.24.0
+plotly>=5.18.0
+pydantic>=2.5.0
+pytest>=7.4.0
+```
 
 ---
 
-## 🤖 Responsible AI
+## � Testing
 
-This project follows **Responsible AI best practices** across 7 key pillars:
+### Run All Tests
 
-### ⚖️ 1. Fairness
-- ✅ Bias testing across gender, age, and categories
-- ✅ Fair performance for all demographic groups (<1% variance)
-- ✅ No systematic discrimination detected
+```bash
+# Run complete test suite
+pytest tests/ -v
 
-### 🔒 2. Privacy
-- ✅ **Zero PII collection** - all data anonymized
-- ✅ GDPR compliant (data minimization, right to explanation)
-- ✅ Encrypted data transmission (HTTPS)
+# Run with coverage report
+pytest tests/ --cov=. --cov-report=html
 
-### 📊 3. Transparency
-- ✅ **SHAP explanations** for every prediction
-- ✅ Open-source codebase (MIT License)
-- ✅ Complete documentation
-- ✅ Model cards published
+# View coverage report
+# Open htmlcov/index.html in browser
+```
 
-### 🛡️ 4. Safety
-- ✅ Input validation and error handling
-- ✅ Comprehensive test suite (>85% coverage)
-- ✅ Health checks and monitoring
-- ✅ Fallback mechanisms
+### Individual Test Modules
 
-### ♻️ 5. Sustainability
-- ✅ Efficient model selection (KNN - lightweight)
-- ✅ Low energy consumption (~0.001 Wh per prediction)
-- ✅ Minimal carbon footprint (~0.5 kg CO2e annually)
+```bash
+# Test model predictions
+pytest tests/test_models.py -v
 
-### 👥 6. Human Oversight
-- ✅ Predictions are recommendations, not decisions
-- ✅ Manual override capability
-- ✅ Confidence levels always shown
-- ✅ Feedback loop for continuous improvement
+# Test API endpoints
+pytest tests/test_main.py -v
 
-### 📜 7. Accountability
-- ✅ Version control (Git + MLflow)
-- ✅ Audit trails for all changes
-- ✅ Documentation standards
-- ✅ Regular reviews and audits
+# Test Streamlit application
+pytest tests/test_application.py -v
+```
 
-**📄 Full Report:** See [Responsible_AI.md](Responsible_AI.md)
+### Test Structure
+
+```
+tests/
+├── test_application.py    # Streamlit app tests
+├── test_models.py         # Model prediction tests
+└── test_main.py           # FastAPI endpoint tests
+```
 
 ---
 
 ## 📚 Documentation
 
-### Main Guides
-- **[README.md](README.md)** - This file (project overview)
-- **[API_README.md](API_README.md)** - FastAPI documentation
-- **[STREAMLIT_README.md](STREAMLIT_README.md)** - Streamlit app guide
-- **[DOCKER_README.md](DOCKER_README.md)** - Docker deployment
-- **[Responsible_AI.md](Responsible_AI.md)** - Responsible AI report
+### Available Guides
 
-### API Documentation
-- **Swagger UI:** `http://localhost:8000/docs`
-- **ReDoc:** `http://localhost:8000/redoc`
+| Document | Description |
+|----------|-------------|
+| **[README.md](README.md)** | Project overview and setup (this file) |
+| **[API_README.md](API_README.md)** | FastAPI endpoint documentation |
+| **[STREAMLIT_DEPLOYMENT_GUIDE.md](STREAMLIT_DEPLOYMENT_GUIDE.md)** | Streamlit deployment guide |
+| **[DOCKER_API_GUIDE.md](DOCKER_API_GUIDE.md)** | Docker containerization guide |
+| **[Responsible_AI.md](Responsible_AI.md)** | Responsible AI practices report |
 
-### Experiment Notebooks
-- Located in `experiments/` directory (optional)
-- Jupyter notebooks with detailed analysis
+### Interactive Documentation
+
+- **Swagger UI:** `http://localhost:8000/docs` (when FastAPI is running)
+- **ReDoc:** `http://localhost:8000/redoc` (alternative API docs)
+- **Live Dashboard:** [https://ds-dashboard-sem7.streamlit.app/](https://ds-dashboard-sem7.streamlit.app/)
 
 ### Code Documentation
-- Inline comments in all Python files
-- Docstrings for functions and classes
+
+- Inline comments throughout codebase
+- Function docstrings with parameter descriptions
 - Type hints for better IDE support
-
----
-
-## 🧪 Testing
-
-### Run All Tests
-```bash
-pytest tests/ -v
-```
-
-### Test Coverage
-```bash
-pytest tests/ --cov=. --cov-report=html
-```
-
-### Individual Test Suites
-```bash
-# Model tests
-pytest tests/test_models.py -v
-
-# API tests
-pytest tests/test_main.py -v
-
-# Streamlit tests
-pytest tests/test_application.py -v
-```
-
-### CI/CD Pipeline
-- **GitHub Actions** runs tests on every push
-- **Workflow:** `.github/workflows/ci-cd-pipeline.yml`
-- **Status:** ✅ All tests passing
 
 ---
 
 ## 🤝 Contributing
 
-Contributions are welcome! Please follow these steps:
+Contributions are welcome! Here's how you can help:
 
-1. **Fork the repository**
-2. **Create a feature branch:**
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
-3. **Make your changes**
-4. **Add tests** for new functionality
-5. **Ensure all tests pass:**
-   ```bash
-   pytest tests/ -v
-   ```
-6. **Commit your changes:**
-   ```bash
-   git commit -m "Add: your feature description"
-   ```
-7. **Push to your fork:**
-   ```bash
-   git push origin feature/your-feature-name
-   ```
-8. **Open a Pull Request**
+### How to Contribute
 
-### Contribution Guidelines
-- Follow PEP 8 style guide
-- Add docstrings to functions
-- Write tests for new features
-- Update documentation
+1. **Fork** the repository
+2. **Create a feature branch:** `git checkout -b feature/your-feature`
+3. **Make your changes** and add tests
+4. **Run tests:** `pytest tests/ -v`
+5. **Commit:** `git commit -m "Add: feature description"`
+6. **Push:** `git push origin feature/your-feature`
+7. **Open a Pull Request**
+
+### Guidelines
+
+- Follow **PEP 8** Python style guide
+- Add **docstrings** to new functions
+- Write **tests** for new features
+- Update **documentation** as needed
 - Be respectful and collaborative
-
----
-
-## 📊 Project Statistics
-
-| Metric | Value |
-|--------|-------|
-| **Lines of Code** | ~8,500+ |
-| **Python Files** | 15+ |
-| **Experiments** | 8 |
-| **Models Trained** | 6 |
-| **Best Accuracy** | 95.30% |
-| **Test Coverage** | ~85% |
-| **API Endpoints** | 5 |
-| **Docker Images** | 2 |
-| **Documentation Pages** | 6 |
 
 ---
 
@@ -569,170 +681,43 @@ Contributions are welcome! Please follow these steps:
 
 This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
-```
-MIT License
-
-Copyright (c) 2024-2025 Horus0305
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
-```
-
 ---
 
 ## 👨‍💻 Author
 
 **Horus0305**
 
-- GitHub: [@Horus0305](https://github.com/Horus0305)
-- Repository: [DS-Experiments](https://github.com/Horus0305/DS-Experiments)
-- Project Duration: 2024-2025
+- 🌐 **Live Demo:** [https://ds-dashboard-sem7.streamlit.app/](https://ds-dashboard-sem7.streamlit.app/)
+-  **GitHub:** [@Horus0305](https://github.com/Horus0305)
+- 📦 **Repository:** [DS-Experiments](https://github.com/Horus0305/DS-Experiments)
 
 ---
 
 ## 📞 Support
 
 ### Get Help
-- **Issues:** [GitHub Issues](https://github.com/Horus0305/DS-Experiments/issues)
-- **Discussions:** [GitHub Discussions](https://github.com/Horus0305/DS-Experiments/discussions)
-- **Documentation:** See guides in repository
 
-### Report Bugs
-- Use [GitHub Issues](https://github.com/Horus0305/DS-Experiments/issues/new)
-- Include steps to reproduce
-- Provide error messages and logs
+- **🐛 Report Bugs:** [GitHub Issues](https://github.com/Horus0305/DS-Experiments/issues)
+- **💬 Discussions:** [GitHub Discussions](https://github.com/Horus0305/DS-Experiments/discussions)
+- **📖 Documentation:** See guides in repository
 
-### Request Features
-- Open a [Feature Request](https://github.com/Horus0305/DS-Experiments/issues/new)
-- Describe the feature and use case
-- Explain expected behavior
+### Common Issues
+
+1. **Git LFS Issues:** Run `git lfs install` and `git lfs pull`
+2. **Import Errors:** Ensure all dependencies installed with `pip install -r requirements.txt`
+3. **Port Conflicts:** Change ports in run commands if 8501 or 8000 are in use
+4. **Model Loading Errors:** Verify model files exist in `dsmodelpickl+preprocessor/`
 
 ---
 
 ## 🌟 Acknowledgments
 
 - **The Whole Truth Foods** - Dataset and business context
-- **Streamlit Team** - Amazing web framework
-- **FastAPI Team** - Excellent API framework
-- **Scikit-learn Contributors** - ML algorithms
-- **SHAP Project** - Explainability tools
+- **Streamlit** - Web framework for data apps
+- **FastAPI** - Modern API framework
+- **Scikit-learn** - Machine learning library
+- **SHAP & LIME** - Explainability tools
 - **Open Source Community** - Inspiration and support
-
----
-
-## 🎯 Project Milestones
-
-- ✅ **Phase 1:** Data collection and cleaning (Complete)
-- ✅ **Phase 2:** EDA and feature engineering (Complete)
-- ✅ **Phase 3:** Model training and evaluation (Complete)
-- ✅ **Phase 4:** Explainability and fairness (Complete)
-- ✅ **Phase 5:** API development (Complete)
-- ✅ **Phase 6:** Dashboard creation (Complete)
-- ✅ **Phase 7:** Responsible AI documentation (Complete)
-- ✅ **Phase 8:** Final deployment and portfolio (Complete)
-
-**Status:** 🎉 **All Phases Complete!**
-
----
-
-## 📈 Future Enhancements
-
-Potential improvements for future versions:
-
-1. **Real-time Data Pipeline**
-   - Integrate with live data sources
-   - Automated data collection
-   - Streaming predictions
-
-2. **Advanced Models**
-   - Ensemble methods (XGBoost, LightGBM)
-   - Deep learning architectures
-   - AutoML integration
-
-3. **Enhanced Monitoring**
-   - Prometheus metrics
-   - Grafana dashboards
-   - Alerting system
-
-4. **A/B Testing Framework**
-   - Multi-model comparison in production
-   - Performance tracking
-   - Automated model selection
-
-5. **Mobile Application**
-   - React Native app
-   - Offline predictions
-   - Push notifications
-
-6. **Extended Fairness**
-   - Additional bias metrics
-   - Counterfactual fairness
-   - Causal inference
-
----
-
-## 🚀 Deployment Checklist
-
-Before deploying to production:
-
-- [x] All tests passing
-- [x] Documentation complete
-- [x] Responsible AI audit complete
-- [x] Security review passed
-- [x] Performance benchmarks met
-- [x] CI/CD pipeline configured
-- [x] Monitoring setup
-- [x] Rollback plan ready
-- [ ] Load testing completed (optional)
-- [ ] Security penetration testing (optional)
-
----
-
-## 📅 Project Timeline
-
-| Phase | Duration | Status |
-|-------|----------|--------|
-| Planning | 1 week | ✅ Complete |
-| Data Collection | 1 week | ✅ Complete |
-| Data Cleaning | 2 weeks | ✅ Complete |
-| EDA & Feature Engineering | 2 weeks | ✅ Complete |
-| Model Training | 3 weeks | ✅ Complete |
-| Explainability & Fairness | 2 weeks | ✅ Complete |
-| API Development | 2 weeks | ✅ Complete |
-| Dashboard Creation | 2 weeks | ✅ Complete |
-| Documentation | 1 week | ✅ Complete |
-| Testing & QA | 1 week | ✅ Complete |
-| Deployment | 1 week | ✅ Complete |
-
-**Total Duration:** ~18 weeks (4.5 months)
-
----
-
-## ⭐ Star History
-
-If you find this project useful, please consider giving it a ⭐ on GitHub!
-
-[![Star History Chart](https://api.star-history.com/svg?repos=Horus0305/DS-Experiments&type=Date)](https://star-history.com/#Horus0305/DS-Experiments&Date)
-
----
-
-## 🔗 Related Projects
-
-- [MLflow](https://github.com/mlflow/mlflow) - ML lifecycle platform
-- [SHAP](https://github.com/slundberg/shap) - Model explainability
-- [Streamlit](https://github.com/streamlit/streamlit) - Web framework
-- [FastAPI](https://github.com/tiangolo/fastapi) - API framework
 
 ---
 
@@ -746,203 +731,10 @@ If you find this project useful, please consider giving it a ⭐ on GitHub!
 
 ⭐ **Star this repository** if you found it helpful!
 
-[Report Bug](https://github.com/Horus0305/DS-Experiments/issues) · [Request Feature](https://github.com/Horus0305/DS-Experiments/issues) · [View Demo](#)
+[🚀 Live Demo](https://ds-dashboard-sem7.streamlit.app/) · [🐛 Report Bug](https://github.com/Horus0305/DS-Experiments/issues) · [✨ Request Feature](https://github.com/Horus0305/DS-Experiments/issues)
 
 ---
 
 © 2024-2025 Horus0305 | MIT License
 
 </div>
-
-A data science experiments repository using DVC (Data Version Control) for managing datasets and experiments with Google Drive as remote storage.
-
-## 📁 Project Structure
-
-```
-DS-Experiments/
-├── .dvc/                    # DVC configuration files
-│   ├── config              # DVC configuration
-│   └── config.local        # Local DVC configuration (OAuth credentials)
-├── data/                   # Data directory (tracked by DVC)
-│   └── WholeTruthFoodDataset-combined.csv
-├── data.dvc               # DVC file tracking the data directory
-├── requirements.txt       # Python dependencies
-├── .gitignore            # Git ignore file
-└── README.md             # This file
-```
-
-## 🚀 Setup Instructions
-
-### 1. Clone the Repository
-
-```bash
-git clone https://github.com/Horus0305/DS-Experiments.git
-cd DS-Experiments
-```
-
-### 2. Create and Activate Virtual Environment
-
-```bash
-# Create virtual environment
-python -m venv .venv
-
-# Activate virtual environment
-# On Linux/Mac:
-source .venv/bin/activate
-
-# On Windows:
-# .venv\Scripts\activate
-```
-
-### 3. Install Dependencies
-
-```bash
-pip install -r requirements.txt
-```
-
-### 4. Configure DVC with Google Drive (OAuth Setup)
-
-#### Step 1: Get OAuth Credentials from Google Cloud Console
-
-1. **Go to Google Cloud Console**: Visit [Google Cloud Console](https://console.cloud.google.com/)
-
-2. **Create or Select a Project**:
-   - Create a new project or select an existing one
-   - Make sure billing is enabled for the project
-
-3. **Enable Google Drive API**:
-   - Go to "APIs & Services" > "Library"
-   - Search for "Google Drive API"
-   - Click on it and press "Enable"
-
-4. **Create OAuth 2.0 Credentials**:
-   - Go to "APIs & Services" > "Credentials"
-   - Click "Create Credentials" > "OAuth 2.0 Client IDs"
-   - If prompted, configure the OAuth consent screen first:
-     - Choose "External" user type
-     - Fill in the required fields (App name, User support email, Developer contact email)
-     - Add your email to test users
-   - For Application type, choose "Desktop application"
-   - Give it a name (e.g., "DVC Desktop Client")
-   - Click "Create"
-
-5. **Download Credentials**:
-   - Download the JSON file containing your credentials
-   - Keep this file secure and never commit it to version control
-
-#### Step 2: Configure DVC with OAuth Credentials
-
-1. **Configure OAuth credentials using DVC commands**:
-   
-   Replace `YOUR_CLIENT_ID` and `YOUR_CLIENT_SECRET` with the values from your downloaded JSON file:
-   
-   ```bash
-   # Set the client ID (--local flag ensures it goes to config.local)
-   dvc remote modify --local gdrive_remote gdrive_client_id YOUR_CLIENT_ID
-   
-   # Set the client secret (--local flag ensures it goes to config.local)
-   dvc remote modify --local gdrive_remote gdrive_client_secret YOUR_CLIENT_SECRET
-   ```
-
-   Where:
-   - `YOUR_CLIENT_ID` = the value of `client_id` field from your JSON file
-   - `YOUR_CLIENT_SECRET` = the value of `client_secret` field from your JSON file
-
-   **Important**: The `--local` flag ensures that credentials are stored in `.dvc/config.local` (which is not tracked by Git) instead of `.dvc/config` (which would be committed to the repository).
-
-#### Step 3: Authenticate with Google Drive
-
-```bash
-# This will open a browser window for authentication
-dvc pull
-```
-
-During the first `dvc pull`, you'll be redirected to a browser to:
-1. Sign in to your Google account
-2. Grant permission for DVC to access your Google Drive
-3. The authentication token will be stored locally
-
-### 5. Download Data
-
-Once authentication is complete, download the data:
-
-```bash
-dvc pull
-```
-
-This will download the dataset from Google Drive to your local `data/` directory.
-
-## 📊 Dataset Information
-
-The repository contains the **WholeTruthFoodDataset-combined.csv** dataset, which is managed by DVC and stored on Google Drive for efficient version control and sharing.
-
-## 🔧 Common DVC Commands
-
-### Download latest data
-```bash
-dvc pull
-```
-
-### Upload data changes
-```bash
-dvc add data/
-git add data.dvc .gitignore
-git commit -m "Update dataset"
-dvc push
-```
-
-### Check data status
-```bash
-dvc status
-```
-
-### Show data information
-```bash
-dvc data ls
-```
-
-## 🔒 Security Notes
-
-- **Never commit OAuth credentials to Git**: The `config.local` file is automatically ignored by DVC
-- **Keep your credentials secure**: Store the downloaded JSON file in a secure location
-- **Regenerate credentials if compromised**: If your credentials are exposed, regenerate them in Google Cloud Console
-
-## 🔍 Troubleshooting
-
-### Authentication Issues
-- If you get authentication errors, try: `dvc cache dir` to check cache location
-- Clear authentication: Delete DVC cache and re-authenticate
-- Make sure Google Drive API is enabled in your Google Cloud project
-
-### Permission Issues
-- Ensure your Google account has access to the shared Drive folder
-- Check that the folder ID in `.dvc/config` is correct
-- Verify that your OAuth app has the necessary scopes
-
-### Data Access Issues
-```bash
-# Check DVC configuration
-dvc config -l
-
-# Verify remote configuration
-dvc remote list
-
-# Check data status
-dvc status
-```
-
-## 🤝 Contributing
-
-1. Fork the repository
-2. Create a feature branch: `git checkout -b feature-name`
-3. Make your changes and commit: `git commit -m "Add feature"`
-4. Push to the branch: `git push origin feature-name`
-5. Submit a pull request
-
-## 📝 License
-
-This project is open source. Please check with the repository owner for specific licensing terms.
-
-## 📧 Contact
-
-For questions or issues, please contact [Horus0305](https://github.com/Horus0305) or open an issue in this repository.
