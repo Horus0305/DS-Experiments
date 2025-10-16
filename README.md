@@ -658,9 +658,7 @@ tests/
 |----------|-------------|
 | **[README.md](README.md)** | Project overview and setup (this file) |
 | **[API_README.md](API_README.md)** | FastAPI endpoint documentation |
-| **[STREAMLIT_DEPLOYMENT_GUIDE.md](STREAMLIT_DEPLOYMENT_GUIDE.md)** | Streamlit deployment guide |
 | **[DOCKER_API_GUIDE.md](DOCKER_API_GUIDE.md)** | Docker containerization guide |
-| **[Responsible_AI.md](Responsible_AI.md)** | Responsible AI practices report |
 
 ### Interactive Documentation
 
